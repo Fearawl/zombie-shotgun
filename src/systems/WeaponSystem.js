@@ -3,7 +3,8 @@ export class WeaponSystem {
     this.config = config;
   }
 
-  buildWeaponProfiles(parameterStacks) {
+  buildWeaponProfiles(parameterStacks, options = {}) {
+    const damageGrowthMultiplier = options.damageGrowthMultiplier ?? 1;
     const profiles = {};
     const weaponDefs = [
       ["meleeWeapon", "melee"],
@@ -41,7 +42,7 @@ export class WeaponSystem {
         bonusCount: 0,
       };
 
-      profile.damage += (parameter.damageBonus ?? 0) * count;
+      profile.damage += (parameter.damageBonus ?? 0) * damageGrowthMultiplier * count;
       profile.radius += (parameter.radiusBonus ?? 0) * count;
       profile.projectileSpeed = (profile.projectileSpeed ?? 0) + (parameter.projectileSpeedBonus ?? 0) * count;
       profile.grenadesPerVolley =

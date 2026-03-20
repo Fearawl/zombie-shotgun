@@ -36,7 +36,9 @@ export class EnemyFactory {
   createUnitDescriptor({ waveNumber, isBoss, parameterRolls }) {
     const parameterStacks = this.rollParameterStacks(parameterRolls);
     const stats = this.buildStats(parameterStacks, isBoss);
-    const weaponProfiles = this.weaponSystem.buildWeaponProfiles(parameterStacks);
+    const weaponProfiles = this.weaponSystem.buildWeaponProfiles(parameterStacks, {
+      damageGrowthMultiplier: this.config.enemy.balance?.damageGrowthMultiplier ?? 1,
+    });
     const visuals = this.buildVisuals(parameterStacks, isBoss);
     const titleParts = this.buildTitleParts(parameterStacks);
 

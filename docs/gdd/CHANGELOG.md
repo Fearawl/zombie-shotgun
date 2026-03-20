@@ -47,3 +47,5 @@
 - Replaced the melee weapon sprite with an axe and made enemy pistol bullets larger and easier to read.
 - Added hero grenade runtime so grenade upgrades now fire in parallel with held LMB, alongside shotgun and pistol.
 - Tightened modal pause flow so level-up state keeps priority over the pause menu and modal transitions cannot resume gameplay out of order.
+- Slowed enemy damage growth by adding a dedicated enemy-only damage scaling multiplier set to `0.5`.
+- Reduced hero XP requirement growth from `x2` per level to `x1.1`.

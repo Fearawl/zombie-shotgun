@@ -1,5 +1,5 @@
 export const gameConfig = {
-  version: "preproduction-013",
+  version: "preproduction-014",
   runtime: {
     world: {
       width: 2200,
@@ -39,7 +39,7 @@ export const gameConfig = {
     rebuildEnemyParametersEachWave: true,
     xp: {
       firstLevelCost: 30,
-      levelCostMultiplier: 2,
+      levelCostMultiplier: 1.1,
       bossStarXpValue: 10,
       smallStarXpValue: 10,
     },
@@ -75,6 +75,9 @@ export const gameConfig = {
         cooldownSeconds: 2,
         vfx: "half_arc",
       },
+    },
+    balance: {
+      damageGrowthMultiplier: 0.5,
     },
     spawn: {
       preferOffscreenSpawn: true,
