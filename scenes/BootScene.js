@@ -24,7 +24,7 @@ export class BootScene extends Phaser.Scene {
     this.makeTriangleTexture("enemy-triangle", 46, 0x7fb36b, 0x2c5132);
     this.makeSquareTexture("enemy-square", 42, 0x7fb36b, 0x2c5132);
     this.makeCircleTexture("pellet", 8, 0xffe08c, 0x7f5a23);
-    this.makeCircleTexture("pistol-bullet", 6, 0xfff4bf, 0x85672f);
+    this.makePistolBulletTexture("pistol-bullet", 18, 8, 0x8fe4ff, 0x184d67);
     this.makeCircleTexture("enemy-bullet", 12, 0xfff1bf, 0x8b5f12);
     this.makeCircleTexture("grenade-orb", 18, 0x4f5962, 0x1d242b);
     this.makeRoundedRectTexture("ammo-box", 50, 34, 8, 0xca8b4d, 0x5f3a1d);
@@ -48,6 +48,18 @@ export class BootScene extends Phaser.Scene {
     graphics.fillCircle(size / 2, size / 2, radius);
     graphics.strokeCircle(size / 2, size / 2, radius);
     graphics.generateTexture(key, size, size);
+    graphics.destroy();
+  }
+
+  makePistolBulletTexture(key, width, height, fillColor, strokeColor) {
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    graphics.fillStyle(fillColor, 1);
+    graphics.lineStyle(2, strokeColor, 1);
+    graphics.fillRoundedRect(2, 2, width - 4, height - 4, height / 2);
+    graphics.strokeRoundedRect(2, 2, width - 4, height - 4, height / 2);
+    graphics.fillStyle(0xd9fbff, 1);
+    graphics.fillTriangle(width - 2, height / 2, width - 8, 2, width - 8, height - 2);
+    graphics.generateTexture(key, width, height);
     graphics.destroy();
   }
 

@@ -65,7 +65,21 @@ export class WeaponSystem {
     const baseMelee = this.config.enemy.baseWeapons.melee;
     const shotgunRuntime = this.config.runtime.hero.shotgun;
     const profiles = {
-      shotgun: {
+      melee: {
+        id: "melee",
+        damage: baseMelee.damage + meleeStacks * this.config.parameters.meleeWeapon.damageBonus,
+        radius: baseMelee.radius + (meleeStacks > 0 ? 20 : 0),
+        cooldownMs: Math.max(
+          220,
+          baseMelee.cooldownSeconds * 1000 -
+            reloadStacks * this.config.parameters.reload.cooldownReductionSeconds * 1000
+        ),
+        bonusCount: Math.max(1, meleeStacks),
+      },
+    };
+
+    if (shotgunStacks > 0) {
+      profiles.shotgun = {
         id: "shotgun",
         pellets: shotgunRuntime.pellets,
         damagePerPellet:
@@ -83,9 +97,9 @@ export class WeaponSystem {
         projectileSpeed:
           shotgunRuntime.projectileSpeed +
           shotgunStacks * this.config.parameters.shotgunWeapon.projectileSpeedBonus,
-        bonusCount: 1 + shotgunStacks,
-      },
-    };
+        bonusCount: shotgunStacks,
+      };
+    }
 
     if (pistolStacks > 0) {
       profiles.pistol = {
@@ -98,20 +112,6 @@ export class WeaponSystem {
         ),
         projectileSpeed: 760 + pistolStacks * this.config.parameters.pistolWeapon.projectileSpeedBonus * 18,
         bonusCount: pistolStacks,
-      };
-    }
-
-    if (meleeStacks > 0) {
-      profiles.melee = {
-        id: "melee",
-        damage: baseMelee.damage + meleeStacks * this.config.parameters.meleeWeapon.damageBonus,
-        radius: baseMelee.radius + 20,
-        cooldownMs: Math.max(
-          220,
-          baseMelee.cooldownSeconds * 1000 -
-            reloadStacks * this.config.parameters.reload.cooldownReductionSeconds * 1000
-        ),
-        bonusCount: meleeStacks,
       };
     }
 

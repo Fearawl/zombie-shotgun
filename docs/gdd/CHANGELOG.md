@@ -51,3 +51,5 @@
 - Reduced hero XP requirement growth from `x2` per level to `x1.1`.
 - Synced hero pistol bullets and shotgun pellets with delayed damage application based on projectile travel time.
 - Unified the hero's default base health and movement speed with the base enemy profile.
+- Kept the hero axe as a permanent auto-attack while pistol, shotgun and grenade upgrades now stack in parallel on input.
+- Reworked pistol bullet visuals to read distinctly from shotgun pellets and added proper smoke trail puffs behind flying grenades.

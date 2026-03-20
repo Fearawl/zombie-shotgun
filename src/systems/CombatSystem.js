@@ -89,8 +89,7 @@ export class CombatSystem {
     const projectile = scene.add
       .image(scene.player.x + Math.cos(angle) * 18, scene.player.y + Math.sin(angle) * 18, "pistol-bullet")
       .setDepth(6)
-      .setScale(1.25)
-      .setTint(0xfff3c3);
+      .setScale(1.05);
     scene.heroProjectiles.add(projectile);
     const hitTarget = this.findHeroPistolTarget(scene, angle, pistol.radius);
     const hitDistance = hitTarget
@@ -168,12 +167,20 @@ export class CombatSystem {
         .setScale(0.78)
         .setTint(0xd8dde3);
       scene.heroProjectiles.add(orb);
+      let lastTrailAt = -100;
       scene.tweens.add({
         targets: orb,
         x: targetX,
         y: targetY,
         duration: 420,
         ease: "Sine.Out",
+        onUpdate: () => {
+          if (scene.time.now - lastTrailAt < 45) {
+            return;
+          }
+          lastTrailAt = scene.time.now;
+          this.spawnGrenadeTrailPuff(scene, orb.x, orb.y, 0xc9d0d6, 0.42);
+        },
         onComplete: () => {
           orb.destroy();
           this.resolveHeroGrenadeExplosion(
@@ -412,12 +419,20 @@ export class CombatSystem {
       const targetX = scene.player.x + spreadX;
       const targetY = scene.player.y + spreadY;
       const orb = scene.add.image(enemy.x, enemy.y - 4, "grenade-orb").setDepth(6).setScale(0.75);
+      let lastTrailAt = -100;
       scene.tweens.add({
         targets: orb,
         x: targetX,
         y: targetY,
         duration: 520,
         ease: "Sine.Out",
+        onUpdate: () => {
+          if (scene.time.now - lastTrailAt < 50) {
+            return;
+          }
+          lastTrailAt = scene.time.now;
+          this.spawnGrenadeTrailPuff(scene, orb.x, orb.y, enemy.weaponVfxTint, 0.38);
+        },
         onComplete: () => {
           orb.destroy();
           this.resolveEnemyGrenadeExplosion(
@@ -452,6 +467,22 @@ export class CombatSystem {
     if (Phaser.Math.Distance.Between(x, y, scene.player.x, scene.player.y) <= radius) {
       this.applyDamageToHero(scene, damage);
     }
+  }
+
+  spawnGrenadeTrailPuff(scene, x, y, tint, scale) {
+    const smoke = scene.add.graphics().setDepth(5.8);
+    smoke.fillStyle(tint, 0.28);
+    smoke.fillCircle(x, y, 8 * scale);
+    smoke.fillStyle(tint, 0.16);
+    smoke.fillCircle(x - 5, y + 3, 11 * scale);
+    scene.tweens.add({
+      targets: smoke,
+      alpha: 0,
+      scaleX: 1.18,
+      scaleY: 1.18,
+      duration: 180,
+      onComplete: () => smoke.destroy(),
+    });
   }
 
   spawnEnemyProjectile(scene, { x, y, angle, speed, range, damage, texture, scale, tint }) {

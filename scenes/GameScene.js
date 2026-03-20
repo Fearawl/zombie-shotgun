@@ -107,7 +107,7 @@ export class GameScene extends Phaser.Scene {
     this.player.maxHealth = gameConfig.hero.base.health;
 
     this.playerShadow = this.add.ellipse(this.player.x + 8, this.player.y + 24, 48, 18, 0x000000, 0.24);
-    this.playerWeaponSprite = this.add.image(this.player.x, this.player.y, "shotgun-icon").setDepth(8.5);
+    this.playerWeaponSprite = this.add.image(this.player.x, this.player.y, "melee-icon").setDepth(8.5);
     this.playerHealthBar = this.add.graphics().setDepth(8);
     this.playerHealthText = this.add
       .text(this.player.x, this.player.y, "", {
@@ -463,6 +463,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   resolveHeroWeaponTexture() {
-    return "shotgun-icon";
+    if (this.hero.weaponProfiles.shotgun) {
+      return "shotgun-icon";
+    }
+    if (this.hero.weaponProfiles.pistol) {
+      return "pistol-icon";
+    }
+    if (this.hero.weaponProfiles.grenade) {
+      return "grenade-icon";
+    }
+    return "melee-icon";
   }
 }
