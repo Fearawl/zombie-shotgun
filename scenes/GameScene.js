@@ -301,7 +301,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   updateUi() {
-    const bossSecondsLeft = Math.max(0, Math.ceil((this.bossTimer.getRemainingSeconds?.() ?? 0)));
+    const bossSecondsLeft = this.bossTimer
+      ? Math.max(0, Math.ceil(this.bossTimer.getRemaining() / 1000))
+      : Math.ceil(BOSS_SPAWN_INTERVAL_MS / 1000);
     this.healthText.setText(`HP: ${this.player.healthPoints}/${PLAYER_MAX_HEALTH}`);
     this.ammoText.setText(`Ammo: ${this.player.clipAmmo}/${this.player.reserveAmmo}`);
     this.killsText.setText(`Zombies down: ${this.kills}`);
