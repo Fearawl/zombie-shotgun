@@ -45,3 +45,5 @@
 - If the hero rolls pistol upgrades, pistol shots now fire in parallel with the default shotgun while LMB is held.
 - If the hero rolls melee upgrades, the melee strike now auto-triggers on cooldown against nearby enemies.
 - Replaced the melee weapon sprite with an axe and made enemy pistol bullets larger and easier to read.
+- Added hero grenade runtime so grenade upgrades now fire in parallel with held LMB, alongside shotgun and pistol.
+- Tightened modal pause flow so level-up state keeps priority over the pause menu and modal transitions cannot resume gameplay out of order.

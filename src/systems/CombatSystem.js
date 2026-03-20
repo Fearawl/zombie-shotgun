@@ -32,6 +32,7 @@ export class CombatSystem {
     if (scene.input.activePointer.leftButtonDown()) {
       this.fireHeroShotgun(scene, { worldX: pointer.x, worldY: pointer.y });
       this.fireHeroPistol(scene, { worldX: pointer.x, worldY: pointer.y });
+      this.throwHeroGrenades(scene, { worldX: pointer.x, worldY: pointer.y });
     }
 
     this.triggerHeroMelee(scene);
@@ -140,6 +141,50 @@ export class CombatSystem {
     return true;
   }
 
+  throwHeroGrenades(scene, pointer) {
+    const grenade = scene.hero.weaponProfiles.grenade;
+    if (!grenade) {
+      return false;
+    }
+    if (scene.time.now - scene.lastHeroGrenadeAt < grenade.cooldownMs) {
+      return false;
+    }
+
+    scene.lastHeroGrenadeAt = scene.time.now;
+    const volleyCount = Math.max(1, grenade.grenadesPerVolley ?? 1);
+    for (let i = 0; i < volleyCount; i += 1) {
+      const spreadX = Phaser.Math.Between(-36, 36);
+      const spreadY = Phaser.Math.Between(-36, 36);
+      const targetX = pointer.worldX + spreadX;
+      const targetY = pointer.worldY + spreadY;
+      const orb = scene.add
+        .image(scene.player.x, scene.player.y - 4, "grenade-orb")
+        .setDepth(6.2)
+        .setScale(0.78)
+        .setTint(0xd8dde3);
+      scene.heroProjectiles.add(orb);
+      scene.tweens.add({
+        targets: orb,
+        x: targetX,
+        y: targetY,
+        duration: 420,
+        ease: "Sine.Out",
+        onComplete: () => {
+          orb.destroy();
+          this.resolveHeroGrenadeExplosion(
+            scene,
+            targetX,
+            targetY,
+            grenade.damage,
+            Math.max(34, grenade.radius * 0.34)
+          );
+        },
+      });
+    }
+
+    return true;
+  }
+
   applyHeroPelletDamage(scene, angle, range, damage) {
     scene.enemies.getChildren().forEach((enemy) => {
       if (!enemy.active) {
@@ -182,6 +227,37 @@ export class CombatSystem {
     if (died) {
       scene.kills += 1;
     }
+  }
+
+  resolveHeroGrenadeExplosion(scene, x, y, damage, radius) {
+    const smoke = scene.add.graphics().setDepth(6.3);
+    smoke.fillStyle(0xd9d6ce, 0.72);
+    smoke.fillCircle(x, y, radius * 0.42);
+    smoke.fillStyle(0xb9bcc2, 0.48);
+    smoke.fillCircle(x + 14, y - 10, radius * 0.34);
+    smoke.fillCircle(x - 12, y + 8, radius * 0.3);
+    scene.tweens.add({
+      targets: smoke,
+      alpha: 0,
+      scaleX: 1.38,
+      scaleY: 1.38,
+      duration: 260,
+      onComplete: () => smoke.destroy(),
+    });
+
+    scene.enemies.getChildren().forEach((enemy) => {
+      if (!enemy.active) {
+        return;
+      }
+      if (Phaser.Math.Distance.Between(x, y, enemy.x, enemy.y) > radius) {
+        return;
+      }
+
+      const died = enemy.takeDamage(Math.max(1, damage - (enemy.armorValue ?? 0)));
+      if (died) {
+        scene.kills += 1;
+      }
+    });
   }
 
   handleEnemyTouch(scene, player, enemy) {

@@ -64,6 +64,8 @@ export class GameScene extends Phaser.Scene {
     this.lastHeroShotAt = -gameConfig.runtime.hero.shotgun.cooldownMs;
     this.lastHeroPistolAt = -300;
     this.lastHeroMeleeAt = -600;
+    this.lastHeroGrenadeAt = -900;
+    this.currentUpgradeCards = null;
     this.physics.world.setBounds(0, 0, gameConfig.runtime.world.width, gameConfig.runtime.world.height);
   }
 
@@ -367,6 +369,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   showLevelUpChoices() {
+    this.uiSystem.hidePauseMenu();
     this.currentUpgradeCards = this.progressionSystem.createUpgradeOffer();
     this.uiSystem.showLevelUpCards(this.currentUpgradeCards);
     this.setGameplayPaused(true, "level_up");
@@ -390,6 +393,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   setGameplayPaused(isPaused, reason) {
+    if (!isPaused && this.session.pauseReason === "level_up" && this.currentUpgradeCards) {
+      return;
+    }
+
     this.isGameplayPaused = isPaused;
     if (isPaused) {
       this.session.setPauseReason(reason ?? "gameplay");
@@ -430,11 +437,17 @@ export class GameScene extends Phaser.Scene {
   }
 
   openPauseMenu() {
+    if (this.session.pauseReason === "level_up") {
+      return;
+    }
     this.uiSystem.showPauseMenu();
     this.setGameplayPaused(true, "pause_menu");
   }
 
   closePauseMenu() {
+    if (this.session.pauseReason !== "pause_menu") {
+      return;
+    }
     this.uiSystem.hidePauseMenu();
     this.setGameplayPaused(false, null);
   }
