@@ -82,3 +82,10 @@ Only one pause source should own input at a time. This is why pause state should
 - Move new logic into systems first, then gradually replace in-scene logic.
 - Avoid hardcoding per-weapon or per-enemy logic directly in `GameScene`.
 - Build the next phase as a clean replacement path rather than incremental patching over prototype combat code.
+
+## Current Implementation Slice
+- `GameScene` now acts as a preproduction dashboard instead of the old prototype combat sandbox.
+- The following modules are already implemented as code and wired together:
+  `GameSession`, `EventBus`, `Hero`, `EnemyUnit`, `Pickup`, `EnemyFactory`, `WaveSystem`, `SpawnSystem`, `WeaponSystem`, `LootSystem`, `ProgressionSystem`, `PresentationSystem`.
+- The next phase is to replace the dashboard with the actual runtime layer:
+  hero runtime entity, enemy runtime entity, projectile runtime, wave timer, spawner execution, combat resolution and upgrade pause flow.

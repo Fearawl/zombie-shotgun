@@ -14,3 +14,5 @@
 - Confirmed dominant weapon is defined by total bonus count including the base package.
 - Confirmed mixed weapon types run in parallel, while repeated weapon rolls stack into one profile.
 - Confirmed no duplicate upgrade cards inside one level-up offer.
+- Added the first implementation slice of the new architecture: core session, event bus, hero/enemy/pickup data models, and wave/spawn/weapon/loot/progression/presentation systems.
+- Replaced the old in-progress combat scene in `dev` with a preproduction architecture dashboard backed by the new systems.
