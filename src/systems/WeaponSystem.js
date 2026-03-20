@@ -68,7 +68,7 @@ export class WeaponSystem {
       melee: {
         id: "melee",
         damage: baseMelee.damage + meleeStacks * this.config.parameters.meleeWeapon.damageBonus,
-        radius: baseMelee.radius + (meleeStacks > 0 ? 20 : 0),
+        radius: baseMelee.radius * 3 + (meleeStacks > 0 ? 20 : 0),
         cooldownMs: Math.max(
           220,
           baseMelee.cooldownSeconds * 1000 -

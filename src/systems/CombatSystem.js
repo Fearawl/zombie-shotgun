@@ -141,7 +141,7 @@ export class CombatSystem {
     if (died) {
       scene.kills += 1;
     }
-    this.showHeroMeleeSwing(scene, bestTarget);
+    this.showHeroMeleeSwing(scene, bestTarget, melee.radius);
     return true;
   }
 
@@ -558,17 +558,20 @@ export class CombatSystem {
     });
   }
 
-  showHeroMeleeSwing(scene, target) {
+  showHeroMeleeSwing(scene, target, radius) {
     const angle = Phaser.Math.Angle.Between(scene.player.x, scene.player.y, target.x, target.y);
     const arc = scene.add.graphics().setDepth(8.6);
-    arc.lineStyle(4, 0xd9a55c, 0.95);
+    arc.fillStyle(0xd9a55c, 0.12);
+    arc.slice(scene.player.x, scene.player.y, radius, angle - Math.PI / 2, angle + Math.PI / 2, false);
+    arc.fillPath();
+    arc.lineStyle(5, 0xe8bb72, 0.95);
     arc.beginPath();
-    arc.arc(scene.player.x, scene.player.y, 28, angle - 0.8, angle + 0.8, false);
+    arc.arc(scene.player.x, scene.player.y, radius, angle - Math.PI / 2, angle + Math.PI / 2, false);
     arc.strokePath();
     scene.tweens.add({
       targets: arc,
       alpha: 0,
-      duration: 120,
+      duration: 150,
       onComplete: () => arc.destroy(),
     });
   }

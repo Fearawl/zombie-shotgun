@@ -53,3 +53,4 @@
 - Unified the hero's default base health and movement speed with the base enemy profile.
 - Kept the hero axe as a permanent auto-attack while pistol, shotgun and grenade upgrades now stack in parallel on input.
 - Reworked pistol bullet visuals to read distinctly from shotgun pellets and added proper smoke trail puffs behind flying grenades.
+- Increased the hero melee radius to three times the base size and synced the axe swing VFX to render the actual attack half-circle.

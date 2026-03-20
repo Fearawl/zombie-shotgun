@@ -4,7 +4,7 @@ const sharedBaseUnitStats = {
 };
 
 export const gameConfig = {
-  version: "preproduction-016",
+  version: "preproduction-017",
   runtime: {
     world: {
       width: 2200,
