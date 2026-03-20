@@ -10,6 +10,10 @@ const SHOT_PELLET_COUNT = 8;
 const SHOT_SPREAD = 0.34;
 const SHOT_SPEED = 900;
 const ZOMBIE_COUNT = 18;
+const ZOMBIE_SPAWN_INTERVAL_MS = 2000;
+const ZOMBIE_SPAWN_MIN_RADIUS = 220;
+const ZOMBIE_SPAWN_MAX_RADIUS = 360;
+const PELLET_HIT_RADIUS = 22;
 const RANGE_PRESETS = [
   { label: "Short", screenRatio: 0.22, color: 0xa0d8ff },
   { label: "Medium", screenRatio: 0.3, color: 0xf3d57d },
@@ -46,10 +50,11 @@ export class GameScene extends Phaser.Scene {
     this.setupCamera();
     this.setupInput();
     this.setupCollisions();
+    this.setupZombieSpawner();
   }
 
   createGroups() {
-    this.pellets = this.physics.add.group();
+    this.pellets = this.add.group();
     this.zombies = this.physics.add.group({
       classType: Zombie,
       runChildUpdate: true,
@@ -105,8 +110,7 @@ export class GameScene extends Phaser.Scene {
       const [x, y] = points[i % points.length];
       const offsetX = Math.floor(i / points.length) * 58;
       const offsetY = (i % 2 === 0 ? 1 : -1) * Math.floor(i / points.length) * 44;
-      const zombie = new Zombie(this, x + offsetX, y + offsetY);
-      this.zombies.add(zombie);
+      this.spawnZombie(x + offsetX, y + offsetY, false);
     }
   }
 
@@ -171,7 +175,19 @@ export class GameScene extends Phaser.Scene {
 
   setupCollisions() {
     this.physics.add.overlap(this.player, this.pickups, this.handlePickup, undefined, this);
-    this.physics.add.overlap(this.pellets, this.zombies, this.handlePelletHit, undefined, this);
+  }
+
+  setupZombieSpawner() {
+    this.spawnTimer = this.time.addEvent({
+      delay: ZOMBIE_SPAWN_INTERVAL_MS,
+      loop: true,
+      callback: () => {
+        if (this.isRoundFinished) {
+          return;
+        }
+        this.spawnZombieNearPlayer();
+      },
+    });
   }
 
   update() {
@@ -287,24 +303,26 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < SHOT_PELLET_COUNT; i += 1) {
       const t = SHOT_PELLET_COUNT === 1 ? 0.5 : i / (SHOT_PELLET_COUNT - 1);
       const angle = baseAngle + Phaser.Math.Linear(-SHOT_SPREAD, SHOT_SPREAD, t);
-      const pellet = this.physics.add.image(
+      const pellet = this.add.image(
         this.player.x + Math.cos(angle) * 30,
         this.player.y + Math.sin(angle) * 30,
         "pellet"
       );
       pellet.setDepth(5);
-      pellet.setVelocity(Math.cos(angle) * SHOT_SPEED, Math.sin(angle) * SHOT_SPEED);
-      pellet.body.allowGravity = false;
-      pellet.damage = SHOT_DAMAGE;
-      pellet.shotId = this.shotSequence;
       this.pellets.add(pellet);
 
-      this.time.delayedCall(shotLifetimeMs, () => {
-        if (pellet.active) {
-          pellet.destroy();
-        }
+      this.tweens.add({
+        targets: pellet,
+        x: this.player.x + Math.cos(angle) * rangeDistance,
+        y: this.player.y + Math.sin(angle) * rangeDistance,
+        alpha: 0.1,
+        duration: shotLifetimeMs,
+        ease: "Linear",
+        onComplete: () => pellet.destroy(),
       });
     }
+
+    this.applyShotDamage(baseAngle, rangeDistance);
 
     this.showMuzzleFlash(baseAngle);
     this.cameras.main.shake(65, 0.0025);
@@ -354,25 +372,6 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  handlePelletHit(pellet, zombie) {
-    if (!pellet.active || !zombie.active) {
-      return;
-    }
-
-    if (zombie.lastHitShotId === pellet.shotId) {
-      pellet.destroy();
-      return;
-    }
-
-    zombie.lastHitShotId = pellet.shotId;
-    pellet.destroy();
-    const died = zombie.takeDamage(pellet.damage);
-
-    if (died) {
-      this.kills += 1;
-    }
-  }
-
   flashUi(color) {
     const previousColors = [
       this.ammoText.style.color,
@@ -398,6 +397,10 @@ export class GameScene extends Phaser.Scene {
 
     this.isRoundFinished = true;
     this.player.setVelocity(0, 0);
+    if (this.spawnTimer) {
+      this.spawnTimer.remove(false);
+      this.spawnTimer = null;
+    }
     this.scene.start("ResultScene", {
       kills: this.kills,
       elapsedSeconds: 60,
@@ -458,6 +461,90 @@ export class GameScene extends Phaser.Scene {
     this.shotRangeGraphics.closePath();
     this.shotRangeGraphics.fillPath();
     this.shotRangeGraphics.strokePath();
+  }
+
+  applyShotDamage(baseAngle, rangeDistance) {
+    const pelletAngles = [];
+    for (let i = 0; i < SHOT_PELLET_COUNT; i += 1) {
+      const t = SHOT_PELLET_COUNT === 1 ? 0.5 : i / (SHOT_PELLET_COUNT - 1);
+      pelletAngles.push(baseAngle + Phaser.Math.Linear(-SHOT_SPREAD, SHOT_SPREAD, t));
+    }
+
+    this.zombies.getChildren().forEach((zombie) => {
+      if (!zombie.active) {
+        return;
+      }
+
+      let hitCount = 0;
+      for (const angle of pelletAngles) {
+        if (this.isZombieHitByPellet(zombie, angle, rangeDistance)) {
+          hitCount += 1;
+        }
+      }
+
+      if (hitCount <= 0) {
+        return;
+      }
+
+      const died = zombie.takeDamage(hitCount * SHOT_DAMAGE);
+      if (died) {
+        this.kills += 1;
+      }
+    });
+  }
+
+  isZombieHitByPellet(zombie, angle, rangeDistance) {
+    const startX = this.player.x;
+    const startY = this.player.y;
+    const endX = startX + Math.cos(angle) * rangeDistance;
+    const endY = startY + Math.sin(angle) * rangeDistance;
+    const distanceToSegment = this.getDistanceToSegment(startX, startY, endX, endY, zombie.x, zombie.y);
+
+    return distanceToSegment <= PELLET_HIT_RADIUS;
+  }
+
+  getDistanceToSegment(x1, y1, x2, y2, px, py) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const lengthSq = dx * dx + dy * dy;
+
+    if (lengthSq === 0) {
+      return Phaser.Math.Distance.Between(x1, y1, px, py);
+    }
+
+    const t = Phaser.Math.Clamp(((px - x1) * dx + (py - y1) * dy) / lengthSq, 0, 1);
+    const nearestX = x1 + dx * t;
+    const nearestY = y1 + dy * t;
+
+    return Phaser.Math.Distance.Between(nearestX, nearestY, px, py);
+  }
+
+  spawnZombie(x, y, emerge = true) {
+    const zombie = new Zombie(this, x, y);
+    this.zombies.add(zombie);
+
+    if (emerge) {
+      zombie.emergeFromGround();
+    }
+
+    return zombie;
+  }
+
+  spawnZombieNearPlayer() {
+    const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+    const distance = Phaser.Math.Between(ZOMBIE_SPAWN_MIN_RADIUS, ZOMBIE_SPAWN_MAX_RADIUS);
+    const x = Phaser.Math.Clamp(
+      this.player.x + Math.cos(angle) * distance,
+      80,
+      this.physics.world.bounds.width - 80
+    );
+    const y = Phaser.Math.Clamp(
+      this.player.y + Math.sin(angle) * distance,
+      80,
+      this.physics.world.bounds.height - 80
+    );
+
+    this.spawnZombie(x, y, true);
   }
 
   drawArena() {

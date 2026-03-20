@@ -10,7 +10,8 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     this.moveSpeed = Phaser.Math.Between(34, 52);
     this.changeDirectionAt = 0;
     this.walkDirection = new Phaser.Math.Vector2(1, 0);
-    this.lastHitShotId = null;
+    this.canMove = true;
+    this.baseY = y;
 
     this.setCollideWorldBounds(true);
     this.setBounce(1, 1);
@@ -27,6 +28,13 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   preUpdate(time, delta) {
     super.preUpdate(time, delta);
 
+    if (!this.canMove) {
+      this.setVelocity(0, 0);
+      this.shadow.setPosition(this.x + 6, this.y + 18);
+      this.drawHealthBar();
+      return;
+    }
+
     if (time >= this.changeDirectionAt) {
       this.pickNewDirection(time);
     }
@@ -40,6 +48,38 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
     this.walkDirection.set(Math.cos(angle), Math.sin(angle));
     this.changeDirectionAt = time + Phaser.Math.Between(1100, 2600);
+  }
+
+  emergeFromGround(duration = 420) {
+    this.canMove = false;
+    this.baseY = this.y;
+    this.setAlpha(0);
+    this.setScale(0.7);
+    this.setY(this.y + 28);
+
+    const dirt = this.scene.add.ellipse(this.x, this.baseY + 18, 52, 22, 0x4c2d17, 0.8).setDepth(2);
+    this.scene.tweens.add({
+      targets: dirt,
+      scaleX: 1.2,
+      scaleY: 1.15,
+      alpha: 0.28,
+      duration,
+      onComplete: () => dirt.destroy(),
+    });
+
+    this.scene.tweens.add({
+      targets: this,
+      y: this.baseY,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      duration,
+      ease: "Sine.Out",
+      onComplete: () => {
+        this.canMove = true;
+        this.pickNewDirection(this.scene.time.now);
+      },
+    });
   }
 
   takeDamage(amount) {
