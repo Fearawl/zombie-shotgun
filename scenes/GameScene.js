@@ -3,11 +3,14 @@ import { Zombie } from "../src/entities/Zombie.js";
 
 const PLAYER_SPEED = 250;
 const PLAYER_MAX_HEALTH = 10;
-const CLIP_SIZE = 6;
-const STARTING_RESERVE_AMMO = 10;
-const SHOT_DAMAGE = 5;
+const SHOTGUN_CLIP_SIZE = 6;
+const STARTING_SHOTGUN_AMMO = 10;
+const SHOTGUN_DAMAGE = 5;
+const PISTOL_CLIP_SIZE = 15;
+const STARTING_PISTOL_AMMO = 60;
+const PISTOL_DAMAGE = 8;
 const SHOT_COOLDOWN_MS = 280;
-const SHOT_PELLET_COUNT = 8;
+const SHOTGUN_PELLET_COUNT = 8;
 const SHOT_SPREAD = 0.34;
 const ZOMBIE_COUNT = 18;
 const DEFAULT_ZOMBIE_SPAWN_INTERVAL_MS = 1000;
@@ -21,11 +24,20 @@ const PLAYER_HIT_RADIUS = 34;
 const ZOMBIE_ATTACK_DAMAGE = 5;
 const ZOMBIE_ATTACK_COOLDOWN_MS = 2000;
 const ZOMBIE_SPEED_BOOST_PER_BOSS = 1.2;
+const FAST_ZOMBIE_CHANCE = 0.28;
+const GRENADE_DAMAGE = 45;
+const GRENADE_RADIUS = 120;
 const RANGE_PRESETS = [
   { label: "Short", screenRatio: 0.22, color: 0xa0d8ff },
   { label: "Medium", screenRatio: 0.3, color: 0xf3d57d },
   { label: "Long", screenRatio: 0.38, color: 0xffa970 },
 ];
+
+const WEAPONS = {
+  shotgun: { key: "shotgun", label: "Shotgun", clipSize: SHOTGUN_CLIP_SIZE },
+  pistol: { key: "pistol", label: "Pistol", clipSize: PISTOL_CLIP_SIZE },
+  grenade: { key: "grenade", label: "Grenade" },
+};
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -73,7 +85,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   createGroups() {
-    this.pellets = this.add.group();
+    this.projectiles = this.add.group();
     this.zombies = this.physics.add.group({
       classType: Zombie,
       runChildUpdate: true,
@@ -90,8 +102,20 @@ export class GameScene extends Phaser.Scene {
     this.player.setCircle(18, 4, 4);
     this.player.facingAngle = 0;
     this.player.healthPoints = PLAYER_MAX_HEALTH;
-    this.player.clipAmmo = CLIP_SIZE;
-    this.player.reserveAmmo = STARTING_RESERVE_AMMO - CLIP_SIZE;
+    this.player.weapons = {
+      shotgun: {
+        clipAmmo: SHOTGUN_CLIP_SIZE,
+        reserveAmmo: STARTING_SHOTGUN_AMMO - SHOTGUN_CLIP_SIZE,
+      },
+      pistol: {
+        clipAmmo: PISTOL_CLIP_SIZE,
+        reserveAmmo: STARTING_PISTOL_AMMO - PISTOL_CLIP_SIZE,
+      },
+      grenade: {
+        ammo: 2,
+      },
+    };
+    this.player.currentWeapon = WEAPONS.shotgun.key;
 
     this.playerShadow = this.add.ellipse(this.player.x + 6, this.player.y + 24, 44, 18, 0x000000, 0.24);
     this.shotRangeGraphics = this.add.graphics().setDepth(1);
@@ -106,7 +130,7 @@ export class GameScene extends Phaser.Scene {
     ];
 
     positions.forEach(([x, y]) => {
-      const pickup = new AmmoPickup(this, x, y, { ammoAmount: 10 });
+      const pickup = new AmmoPickup(this, x, y, this.buildPickupOptions("shotgunAmmo"));
       this.pickups.add(pickup);
     });
   }
@@ -131,7 +155,10 @@ export class GameScene extends Phaser.Scene {
       const [x, y] = points[i % points.length];
       const offsetX = Math.floor(i / points.length) * 58;
       const offsetY = (i % 2 === 0 ? 1 : -1) * Math.floor(i / points.length) * 44;
-      this.spawnZombie(x + offsetX, y + offsetY, { emerge: false });
+      this.spawnZombie(x + offsetX, y + offsetY, {
+        emerge: false,
+        isFast: i % 6 === 0,
+      });
     }
   }
 
@@ -141,8 +168,8 @@ export class GameScene extends Phaser.Scene {
     const panel = this.add.graphics();
     panel.fillStyle(0x09131a, 0.85);
     panel.lineStyle(2, 0x305164, 1);
-    panel.fillRoundedRect(0, 0, 340, 186, 16);
-    panel.strokeRoundedRect(0, 0, 340, 186, 16);
+    panel.fillRoundedRect(0, 0, 372, 220, 16);
+    panel.strokeRoundedRect(0, 0, 372, 220, 16);
     this.ui.add(panel);
 
     this.healthText = this.add.text(20, 16, "", {
@@ -150,34 +177,40 @@ export class GameScene extends Phaser.Scene {
       fontSize: "20px",
       color: "#ffb2b2",
     });
-    this.ammoText = this.add.text(20, 46, "", {
+    this.weaponText = this.add.text(20, 46, "", {
+      fontFamily: "Verdana, sans-serif",
+      fontSize: "18px",
+      color: "#f3efcf",
+    });
+    this.ammoText = this.add.text(20, 72, "", {
       fontFamily: "Verdana, sans-serif",
       fontSize: "20px",
       color: "#fce7b4",
     });
-    this.killsText = this.add.text(20, 76, "", {
+    this.killsText = this.add.text(20, 108, "", {
       fontFamily: "Verdana, sans-serif",
       fontSize: "20px",
       color: "#b9f0c4",
     });
-    this.bossText = this.add.text(20, 106, "", {
+    this.bossText = this.add.text(20, 138, "", {
       fontFamily: "Verdana, sans-serif",
       fontSize: "20px",
       color: "#ff9f7c",
     });
-    this.rangeText = this.add.text(20, 136, "", {
+    this.rangeText = this.add.text(20, 168, "", {
       fontFamily: "Verdana, sans-serif",
       fontSize: "18px",
       color: "#f2cfa4",
     });
-    this.reloadText = this.add.text(20, 160, "Reload: R", {
+    this.reloadText = this.add.text(20, 194, "1 Shotgun  2 Pistol  3 Grenade  R Reload", {
       fontFamily: "Verdana, sans-serif",
-      fontSize: "16px",
+      fontSize: "14px",
       color: "#9fc2d7",
     });
 
     this.ui.add([
       this.healthText,
+      this.weaponText,
       this.ammoText,
       this.killsText,
       this.bossText,
@@ -417,7 +450,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   setupInput() {
-    this.keys = this.input.keyboard.addKeys("W,A,S,D,R,P,ESC");
+    this.keys = this.input.keyboard.addKeys("W,A,S,D,R,P,ESC,ONE,TWO,THREE");
     if (this.input.mouse) {
       this.input.mouse.disableContextMenu();
     }
@@ -427,7 +460,7 @@ export class GameScene extends Phaser.Scene {
         return;
       }
       if (pointer.leftButtonDown()) {
-        this.tryShoot(pointer);
+        this.useCurrentWeapon(pointer);
         return;
       }
 
@@ -438,6 +471,9 @@ export class GameScene extends Phaser.Scene {
     this.input.keyboard.on("keydown-R", () => this.reloadWeapon());
     this.input.keyboard.on("keydown-P", () => this.toggleDevConsole());
     this.input.keyboard.on("keydown-ESC", () => this.togglePauseMenu());
+    this.input.keyboard.on("keydown-ONE", () => this.selectWeapon(WEAPONS.shotgun.key));
+    this.input.keyboard.on("keydown-TWO", () => this.selectWeapon(WEAPONS.pistol.key));
+    this.input.keyboard.on("keydown-THREE", () => this.selectWeapon(WEAPONS.grenade.key));
   }
 
   setupCollisions() {
@@ -521,7 +557,12 @@ export class GameScene extends Phaser.Scene {
     const angle = this.player.facingAngle;
     const originX = this.player.x;
     const originY = this.player.y - 2;
-    const barrelLength = 34;
+    const barrelLength =
+      this.player.currentWeapon === WEAPONS.pistol.key
+        ? 28
+        : this.player.currentWeapon === WEAPONS.grenade.key
+          ? 18
+          : 34;
     const gripLength = 14;
     const barrelX = originX + Math.cos(angle) * barrelLength;
     const barrelY = originY + Math.sin(angle) * barrelLength;
@@ -530,9 +571,14 @@ export class GameScene extends Phaser.Scene {
     const sideAngle = angle + Math.PI / 2;
 
     this.playerGun.clear();
-    this.playerGun.lineStyle(8, 0x44352d, 1);
+    if (this.player.currentWeapon === WEAPONS.grenade.key) {
+      this.playerGun.fillStyle(0x46525e, 1);
+      this.playerGun.fillCircle(barrelX, barrelY, 9);
+      return;
+    }
+    this.playerGun.lineStyle(this.player.currentWeapon === WEAPONS.pistol.key ? 5 : 8, 0x44352d, 1);
     this.playerGun.lineBetween(buttX, buttY, barrelX, barrelY);
-    this.playerGun.lineStyle(4, 0x946a3a, 1);
+    this.playerGun.lineStyle(this.player.currentWeapon === WEAPONS.pistol.key ? 3 : 4, 0x946a3a, 1);
     this.playerGun.lineBetween(
       originX + Math.cos(sideAngle) * 4,
       originY + Math.sin(sideAngle) * 4,
@@ -545,14 +591,32 @@ export class GameScene extends Phaser.Scene {
     const bossSecondsLeft = this.bossTimer
       ? Math.max(0, Math.ceil(this.bossTimer.getRemaining() / 1000))
       : Math.ceil(this.settings.bossSpawnIntervalMs / 1000);
+    const shotgun = this.player.weapons.shotgun;
+    const pistol = this.player.weapons.pistol;
+    const grenade = this.player.weapons.grenade;
     this.healthText.setText(`HP: ${this.player.healthPoints}/${PLAYER_MAX_HEALTH}`);
-    this.ammoText.setText(`Ammo: ${this.player.clipAmmo}/${this.player.reserveAmmo}`);
+    this.weaponText.setText(`Weapon: ${WEAPONS[this.player.currentWeapon].label}`);
+    this.ammoText.setText(`SG ${shotgun.clipAmmo}/${shotgun.reserveAmmo}  PI ${pistol.clipAmmo}/${pistol.reserveAmmo}  GR ${grenade.ammo}`);
     this.killsText.setText(`Zombies down: ${this.kills}`);
     this.bossText.setText(`Boss in: ${bossSecondsLeft}s`);
     this.rangeText.setText(`Range: ${this.getCurrentRangePreset().label} (RMB)`);
   }
 
-  tryShoot(pointer) {
+  useCurrentWeapon(pointer) {
+    if (this.player.currentWeapon === WEAPONS.shotgun.key) {
+      this.fireShotgun(pointer);
+      return;
+    }
+
+    if (this.player.currentWeapon === WEAPONS.pistol.key) {
+      this.firePistol(pointer);
+      return;
+    }
+
+    this.throwGrenade(pointer);
+  }
+
+  fireShotgun(pointer) {
     if (this.isRoundFinished || this.isPaused) {
       return;
     }
@@ -561,13 +625,13 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.player.clipAmmo <= 0) {
+    if (this.player.weapons.shotgun.clipAmmo <= 0) {
       this.flashUi("#ff8b7d");
       return;
     }
 
     this.lastShotAt = this.time.now;
-    this.player.clipAmmo -= 1;
+    this.player.weapons.shotgun.clipAmmo -= 1;
 
     const targetX = pointer.worldX;
     const targetY = pointer.worldY;
@@ -575,31 +639,80 @@ export class GameScene extends Phaser.Scene {
     const rangeDistance = this.getCurrentShotDistance();
     const shotLifetimeMs = Math.round((rangeDistance / 900) * 1000);
 
-    for (let i = 0; i < SHOT_PELLET_COUNT; i += 1) {
-      const t = SHOT_PELLET_COUNT === 1 ? 0.5 : i / (SHOT_PELLET_COUNT - 1);
+    for (let i = 0; i < SHOTGUN_PELLET_COUNT; i += 1) {
+      const t = SHOTGUN_PELLET_COUNT === 1 ? 0.5 : i / (SHOTGUN_PELLET_COUNT - 1);
       const angle = baseAngle + Phaser.Math.Linear(-SHOT_SPREAD, SHOT_SPREAD, t);
-      const pellet = this.add.image(
-        this.player.x + Math.cos(angle) * 30,
-        this.player.y + Math.sin(angle) * 30,
-        "pellet"
-      );
-      pellet.setDepth(5);
-      this.pellets.add(pellet);
-
-      this.tweens.add({
-        targets: pellet,
-        x: this.player.x + Math.cos(angle) * rangeDistance,
-        y: this.player.y + Math.sin(angle) * rangeDistance,
-        alpha: 0.1,
-        duration: shotLifetimeMs,
-        ease: "Linear",
-        onComplete: () => pellet.destroy(),
-      });
+      this.spawnProjectileVisual("pellet", angle, rangeDistance, shotLifetimeMs, 0.1);
     }
 
-    this.applyShotDamage(baseAngle, rangeDistance);
+    this.applyShotgunDamage(baseAngle, rangeDistance);
     this.showMuzzleFlash(baseAngle);
     this.cameras.main.shake(65, 0.0025);
+  }
+
+  firePistol(pointer) {
+    if (this.isRoundFinished || this.isPaused) {
+      return;
+    }
+
+    if (this.time.now - this.lastShotAt < 150) {
+      return;
+    }
+
+    if (this.player.weapons.pistol.clipAmmo <= 0) {
+      this.flashUi("#ff8b7d");
+      return;
+    }
+
+    this.lastShotAt = this.time.now;
+    this.player.weapons.pistol.clipAmmo -= 1;
+
+    const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, pointer.worldX, pointer.worldY);
+    const rangeDistance = Math.round(this.scale.width * 0.46);
+    const shotLifetimeMs = Math.round((rangeDistance / 1100) * 1000);
+    this.spawnProjectileVisual("pistol-bullet", angle, rangeDistance, shotLifetimeMs, 0.2);
+    this.applySingleBulletDamage(angle, rangeDistance, PISTOL_DAMAGE, 14);
+    this.showMuzzleFlash(angle);
+  }
+
+  throwGrenade(pointer) {
+    if (this.isRoundFinished || this.isPaused) {
+      return;
+    }
+
+    if (this.time.now - this.lastShotAt < 450) {
+      return;
+    }
+
+    if (this.player.weapons.grenade.ammo <= 0) {
+      this.flashUi("#ff8b7d");
+      return;
+    }
+
+    this.lastShotAt = this.time.now;
+    this.player.weapons.grenade.ammo -= 1;
+
+    const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, pointer.worldX, pointer.worldY);
+    const distance = Math.min(
+      Phaser.Math.Distance.Between(this.player.x, this.player.y, pointer.worldX, pointer.worldY),
+      280
+    );
+    const targetX = this.player.x + Math.cos(angle) * distance;
+    const targetY = this.player.y + Math.sin(angle) * distance;
+    const grenade = this.add.image(this.player.x, this.player.y, "grenade-orb").setDepth(5);
+    this.projectiles.add(grenade);
+
+    this.tweens.add({
+      targets: grenade,
+      x: targetX,
+      y: targetY,
+      duration: 420,
+      ease: "Quad.Out",
+      onComplete: () => {
+        grenade.destroy();
+        this.explodeGrenade(targetX, targetY);
+      },
+    });
   }
 
   reloadWeapon() {
@@ -607,16 +720,33 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.player.clipAmmo >= CLIP_SIZE || this.player.reserveAmmo <= 0) {
+    if (this.player.currentWeapon === WEAPONS.grenade.key) {
       this.flashUi("#ff8b7d");
       return;
     }
 
-    const neededAmmo = CLIP_SIZE - this.player.clipAmmo;
-    const loadedAmmo = Math.min(neededAmmo, this.player.reserveAmmo);
-    this.player.clipAmmo += loadedAmmo;
-    this.player.reserveAmmo -= loadedAmmo;
+    const weapon = this.player.weapons[this.player.currentWeapon];
+    const clipSize = WEAPONS[this.player.currentWeapon].clipSize;
+
+    if (weapon.clipAmmo >= clipSize || weapon.reserveAmmo <= 0) {
+      this.flashUi("#ff8b7d");
+      return;
+    }
+
+    const neededAmmo = clipSize - weapon.clipAmmo;
+    const loadedAmmo = Math.min(neededAmmo, weapon.reserveAmmo);
+    weapon.clipAmmo += loadedAmmo;
+    weapon.reserveAmmo -= loadedAmmo;
     this.flashUi("#a7efc5");
+  }
+
+  selectWeapon(weaponKey) {
+    if (this.isRoundFinished) {
+      return;
+    }
+
+    this.player.currentWeapon = weaponKey;
+    this.flashUi("#9cd4ff");
   }
 
   showMuzzleFlash(angle) {
@@ -637,12 +767,63 @@ export class GameScene extends Phaser.Scene {
     this.time.delayedCall(70, () => flash.destroy());
   }
 
+  spawnProjectileVisual(textureKey, angle, distance, duration, targetAlpha) {
+    const projectile = this.add.image(
+      this.player.x + Math.cos(angle) * 24,
+      this.player.y + Math.sin(angle) * 24,
+      textureKey
+    );
+    projectile.setDepth(5);
+    this.projectiles.add(projectile);
+
+    this.tweens.add({
+      targets: projectile,
+      x: this.player.x + Math.cos(angle) * distance,
+      y: this.player.y + Math.sin(angle) * distance,
+      alpha: targetAlpha,
+      duration,
+      ease: "Linear",
+      onComplete: () => projectile.destroy(),
+    });
+  }
+
+  explodeGrenade(x, y) {
+    const blast = this.add.graphics().setDepth(4);
+    blast.fillStyle(0xffc76a, 0.4);
+    blast.fillCircle(x, y, GRENADE_RADIUS);
+    blast.lineStyle(4, 0xff7a37, 0.75);
+    blast.strokeCircle(x, y, GRENADE_RADIUS);
+    this.time.delayedCall(120, () => blast.destroy());
+    this.cameras.main.shake(140, 0.004);
+
+    this.zombies.getChildren().forEach((zombie) => {
+      if (!zombie.active) {
+        return;
+      }
+      const distance = Phaser.Math.Distance.Between(x, y, zombie.x, zombie.y);
+      if (distance > GRENADE_RADIUS) {
+        return;
+      }
+      const falloff = 1 - distance / GRENADE_RADIUS;
+      const died = zombie.takeDamage(Math.max(12, Math.round(GRENADE_DAMAGE * falloff)));
+      if (died) {
+        this.kills += 1;
+      }
+    });
+  }
+
   handlePickup(player, pickup) {
     if (!pickup.active) {
       return;
     }
 
-    player.reserveAmmo += pickup.ammoAmount;
+    if (pickup.pickupType === "shotgunAmmo") {
+      player.weapons.shotgun.reserveAmmo += pickup.ammoAmount;
+    } else if (pickup.pickupType === "pistolAmmo") {
+      player.weapons.pistol.reserveAmmo += pickup.ammoAmount;
+    } else if (pickup.pickupType === "grenade") {
+      player.weapons.grenade.ammo += pickup.ammoAmount;
+    }
     pickup.consume();
     this.flashUi("#f9d27b");
 
@@ -655,7 +836,7 @@ export class GameScene extends Phaser.Scene {
         return;
       }
       const respawned = new AmmoPickup(this, pickup.spawnPoint.x, pickup.spawnPoint.y, {
-        ammoAmount: pickup.ammoAmount,
+        ...this.buildPickupOptions(pickup.pickupType),
         respawnDelayMs: pickup.respawnDelayMs,
         shouldRespawn: pickup.shouldRespawn,
       });
@@ -731,12 +912,39 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  spawnZombieAmmoDrop(x, y) {
+  spawnZombieDrop(x, y, pickupType) {
     const pickup = new AmmoPickup(this, x, y, {
-      ammoAmount: 10,
+      ...this.buildPickupOptions(pickupType),
       shouldRespawn: false,
     });
     this.pickups.add(pickup);
+  }
+
+  buildPickupOptions(pickupType) {
+    if (pickupType === "pistolAmmo") {
+      return {
+        pickupType,
+        textureKey: "pistol-ammo-box",
+        iconTextureKey: "pistol-icon",
+        ammoAmount: 15,
+      };
+    }
+
+    if (pickupType === "grenade") {
+      return {
+        pickupType,
+        textureKey: "grenade-box",
+        iconTextureKey: "grenade-icon",
+        ammoAmount: 1,
+      };
+    }
+
+    return {
+      pickupType: "shotgunAmmo",
+      textureKey: "ammo-box",
+      iconTextureKey: "shell-icon",
+      ammoAmount: 10,
+    };
   }
 
   cycleShotRange() {
@@ -753,6 +961,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   updateShotRangeIndicator() {
+    this.shotRangeGraphics.clear();
+    if (this.player.currentWeapon !== WEAPONS.shotgun.key) {
+      return;
+    }
+
     const angle = this.player.facingAngle;
     const distance = this.getCurrentShotDistance();
     const preset = this.getCurrentRangePreset();
@@ -760,8 +973,6 @@ export class GameScene extends Phaser.Scene {
     const segments = 12;
     const startAngle = angle - SHOT_SPREAD;
     const endAngle = angle + SHOT_SPREAD;
-
-    this.shotRangeGraphics.clear();
     this.shotRangeGraphics.fillStyle(preset.color, 0.12);
     this.shotRangeGraphics.lineStyle(2, preset.color, 0.38);
 
@@ -787,10 +998,10 @@ export class GameScene extends Phaser.Scene {
     this.shotRangeGraphics.strokePath();
   }
 
-  applyShotDamage(baseAngle, rangeDistance) {
+  applyShotgunDamage(baseAngle, rangeDistance) {
     const pelletAngles = [];
-    for (let i = 0; i < SHOT_PELLET_COUNT; i += 1) {
-      const t = SHOT_PELLET_COUNT === 1 ? 0.5 : i / (SHOT_PELLET_COUNT - 1);
+    for (let i = 0; i < SHOTGUN_PELLET_COUNT; i += 1) {
+      const t = SHOTGUN_PELLET_COUNT === 1 ? 0.5 : i / (SHOTGUN_PELLET_COUNT - 1);
       pelletAngles.push(baseAngle + Phaser.Math.Linear(-SHOT_SPREAD, SHOT_SPREAD, t));
     }
 
@@ -810,21 +1021,51 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
-      const died = zombie.takeDamage(hitCount * SHOT_DAMAGE);
+      const died = zombie.takeDamage(hitCount * SHOTGUN_DAMAGE);
       if (died) {
         this.kills += 1;
       }
     });
   }
 
-  isZombieHitByPellet(zombie, angle, rangeDistance) {
+  applySingleBulletDamage(angle, rangeDistance, damage, hitRadius) {
+    let closestZombie = null;
+    let closestDistance = Number.MAX_SAFE_INTEGER;
+
+    this.zombies.getChildren().forEach((zombie) => {
+      if (!zombie.active) {
+        return;
+      }
+
+      if (!this.isZombieHitByPellet(zombie, angle, rangeDistance, hitRadius)) {
+        return;
+      }
+
+      const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, zombie.x, zombie.y);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestZombie = zombie;
+      }
+    });
+
+    if (!closestZombie) {
+      return;
+    }
+
+    const died = closestZombie.takeDamage(damage);
+    if (died) {
+      this.kills += 1;
+    }
+  }
+
+  isZombieHitByPellet(zombie, angle, rangeDistance, hitRadius = PELLET_HIT_RADIUS) {
     const startX = this.player.x;
     const startY = this.player.y;
     const endX = startX + Math.cos(angle) * rangeDistance;
     const endY = startY + Math.sin(angle) * rangeDistance;
     const distanceToSegment = this.getDistanceToSegment(startX, startY, endX, endY, zombie.x, zombie.y);
 
-    return distanceToSegment <= PELLET_HIT_RADIUS;
+    return distanceToSegment <= hitRadius;
   }
 
   getDistanceToSegment(x1, y1, x2, y2, px, py) {
@@ -844,19 +1085,23 @@ export class GameScene extends Phaser.Scene {
   }
 
   spawnZombie(x, y, options = {}) {
+    const isFast = options.isFast ?? false;
+    const dropType = isFast ? (Math.random() < 0.5 ? "pistolAmmo" : "grenade") : "shotgunAmmo";
     const zombie = new Zombie(this, x, y, {
       isBoss: options.isBoss ?? false,
       maxHealth: options.maxHealth ?? 10,
-      moveSpeed: options.moveSpeed,
-      tint: options.tint,
+      isFast,
+      moveSpeed: options.moveSpeed ?? (isFast ? 78 : undefined),
+      tint: options.tint ?? (isFast ? 0xd58a35 : undefined),
       aggroRadius: this.settings.aggroRadius,
       attackCooldownMs: ZOMBIE_ATTACK_COOLDOWN_MS,
       speedMultiplier: this.zombieSpeedMultiplier,
+      dropType,
     });
     this.zombies.add(zombie);
 
     if (options.emerge !== false) {
-      zombie.emergeFromGround(options.isBoss ? 700 : 420);
+      zombie.emergeFromGround(options.isBoss ? 700 : isFast ? 360 : 420);
     }
 
     return zombie;
@@ -888,7 +1133,10 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.spawnZombie(x, y, { emerge: true });
+    this.spawnZombie(x, y, {
+      emerge: true,
+      isFast: Math.random() < FAST_ZOMBIE_CHANCE,
+    });
   }
 
   drawArena() {

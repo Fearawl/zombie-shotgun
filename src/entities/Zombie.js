@@ -6,6 +6,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
 
     this.isBoss = options.isBoss ?? false;
+    this.isFast = options.isFast ?? false;
     this.maxHealth = options.maxHealth ?? 10;
     this.healthPoints = this.maxHealth;
     this.baseMoveSpeed = options.moveSpeed ?? Phaser.Math.Between(34, 52);
@@ -18,19 +19,27 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     this.walkDirection = new Phaser.Math.Vector2(1, 0);
     this.canMove = true;
     this.baseY = y;
+    this.dropType = options.dropType ?? "shotgunAmmo";
 
     this.setCollideWorldBounds(true);
     this.setBounce(1, 1);
     this.setCircle(this.isBoss ? 22 : 16, this.isBoss ? 6 : 4, this.isBoss ? 6 : 4);
     this.setDepth(4);
     this.body.allowGravity = false;
-    if (this.isBoss && options.tint) {
+    if ((this.isBoss || this.isFast) && options.tint) {
       this.setTint(options.tint);
-      this.setScale(1.35);
+      this.setScale(this.isBoss ? 1.35 : 1.05);
     }
 
     this.shadow = scene.add
-      .ellipse(this.x + 6, this.y + (this.isBoss ? 24 : 20), this.isBoss ? 58 : 42, this.isBoss ? 22 : 16, 0x000000, 0.2)
+      .ellipse(
+        this.x + 6,
+        this.y + (this.isBoss ? 24 : 20),
+        this.isBoss ? 58 : this.isFast ? 46 : 42,
+        this.isBoss ? 22 : 16,
+        0x000000,
+        0.2
+      )
       .setDepth(3);
     this.healthBar = scene.add.graphics().setDepth(6);
 
@@ -115,6 +124,8 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
       }
       if (this.isBoss) {
         this.setTint(0xc84a42);
+      } else if (this.isFast) {
+        this.setTint(0xd58a35);
       } else {
         this.clearTint();
       }
@@ -149,11 +160,11 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   }
 
   drawHealthBar() {
-    const width = this.isBoss ? 56 : 40;
+    const width = this.isBoss ? 56 : this.isFast ? 44 : 40;
     this.healthBar.clear();
     this.healthBar.fillStyle(0x371718, 0.9);
     this.healthBar.fillRoundedRect(this.x - width / 2, this.y - (this.isBoss ? 48 : 34), width, 6, 3);
-    this.healthBar.fillStyle(this.isBoss ? 0xff6a62 : 0x72de78, 1);
+    this.healthBar.fillStyle(this.isBoss ? 0xff6a62 : this.isFast ? 0xffc36a : 0x72de78, 1);
     this.healthBar.fillRoundedRect(
       this.x - width / 2,
       this.y - (this.isBoss ? 48 : 34),
@@ -177,8 +188,8 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
       duration: 1800,
     });
 
-    if (this.scene && this.scene.spawnZombieAmmoDrop) {
-      this.scene.spawnZombieAmmoDrop(dropPosition.x, dropPosition.y);
+    if (this.scene && this.scene.spawnZombieDrop) {
+      this.scene.spawnZombieDrop(dropPosition.x, dropPosition.y, this.dropType);
     }
 
     this.destroy();
