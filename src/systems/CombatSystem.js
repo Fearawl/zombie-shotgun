@@ -132,17 +132,15 @@ export class CombatSystem {
       }
     });
 
-    if (!bestTarget) {
-      return false;
-    }
-
     scene.lastHeroMeleeAt = scene.time.now;
-    const died = bestTarget.takeDamage(Math.max(1, melee.damage - (bestTarget.armorValue ?? 0)));
-    if (died) {
-      scene.kills += 1;
+    if (bestTarget) {
+      const died = bestTarget.takeDamage(Math.max(1, melee.damage - (bestTarget.armorValue ?? 0)));
+      if (died) {
+        scene.kills += 1;
+      }
     }
     this.showHeroMeleeSwing(scene, bestTarget, melee.radius);
-    return true;
+    return Boolean(bestTarget);
   }
 
   throwHeroGrenades(scene, pointer) {
@@ -559,7 +557,10 @@ export class CombatSystem {
   }
 
   showHeroMeleeSwing(scene, target, radius) {
-    const angle = Phaser.Math.Angle.Between(scene.player.x, scene.player.y, target.x, target.y);
+    const pointer = scene.input.activePointer.positionToCamera(scene.cameras.main);
+    const angle = target
+      ? Phaser.Math.Angle.Between(scene.player.x, scene.player.y, target.x, target.y)
+      : Phaser.Math.Angle.Between(scene.player.x, scene.player.y, pointer.x, pointer.y);
     const arc = scene.add.graphics().setDepth(8.6);
     arc.fillStyle(0xd9a55c, 0.12);
     arc.slice(scene.player.x, scene.player.y, radius, angle - Math.PI / 2, angle + Math.PI / 2, false);

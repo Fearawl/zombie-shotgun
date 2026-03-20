@@ -55,3 +55,4 @@
 - Reworked pistol bullet visuals to read distinctly from shotgun pellets and added proper smoke trail puffs behind flying grenades.
 - Increased the hero melee radius to three times the base size and synced the axe swing VFX to render the actual attack half-circle.
 - Doubled the hero melee radius again and doubled the base axe damage for the hero only.
+- Fixed hero melee auto-attack cadence so the axe swing now triggers on cooldown even with no enemy in range, aiming toward the cursor when it whiffs.
