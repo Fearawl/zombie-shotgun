@@ -111,7 +111,7 @@ export class GameScene extends Phaser.Scene {
     this.player.isReloading = false;
 
     this.playerShadow = this.add.ellipse(this.player.x + 8, this.player.y + 24, 48, 18, 0x000000, 0.24);
-    this.playerWeaponSprite = this.add.image(this.player.x, this.player.y, "melee-icon").setDepth(8.5);
+    this.playerWeaponSprite = this.add.image(this.player.x, this.player.y, "shotgun-icon").setDepth(8.5);
     this.playerHealthBar = this.add.graphics().setDepth(8);
     this.playerHealthText = this.add
       .text(this.player.x, this.player.y, "", {
@@ -129,11 +129,15 @@ export class GameScene extends Phaser.Scene {
 
   createUi() {
     this.uiSystem.createHud();
+    this.uiSystem.bindSettingsButton(() => this.toggleSettingsPanel());
     this.uiSystem.createLevelUpOverlay((index) => this.selectUpgradeCard(index));
     this.uiSystem.createPauseOverlay({
       onContinue: () => this.closePauseMenu(),
       onRestart: () => this.scene.start("GameScene"),
       onExit: () => this.scene.start("StartScene"),
+    });
+    this.uiSystem.createSettingsOverlay(this.buildSettingsDefinitions(), {
+      onClose: () => this.closeSettingsPanel(),
     });
   }
 
@@ -141,6 +145,7 @@ export class GameScene extends Phaser.Scene {
     this.keys = this.input.keyboard.addKeys("W,A,S,D");
     this.reloadKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
     this.input.keyboard.on("keydown-ESC", () => this.handleEscapePressed());
+    this.input.keyboard.on("keydown-P", () => this.toggleSettingsPanel());
     this.input.keyboard.on("keydown-R", () => this.tryReloadShotgun());
   }
 
@@ -400,6 +405,99 @@ export class GameScene extends Phaser.Scene {
     return true;
   }
 
+  buildSettingsDefinitions() {
+    return [
+      {
+        key: "spawn_interval",
+        label: "Enemy Spawn",
+        description: "Base time between regular enemy spawns before wave acceleration.",
+        min: 0.2,
+        max: 3,
+        step: 0.1,
+        getValue: () => gameConfig.progression.baseSpawnIntervalSeconds,
+        setValue: (value) => {
+          gameConfig.progression.baseSpawnIntervalSeconds = value;
+          if (this.session.currentWave) {
+            this.session.currentWave.spawnIntervalSeconds = this.waveSystem.getSpawnIntervalSeconds(
+              this.session.currentWave.waveNumber
+            );
+            this.startWaveSpawner();
+          }
+        },
+        format: (value) => `${value.toFixed(1)}s`,
+      },
+      {
+        key: "boss_timer",
+        label: "Boss Timer",
+        description: "Wave duration in seconds before the boss appears.",
+        min: 10,
+        max: 90,
+        step: 1,
+        getValue: () => gameConfig.progression.waveDurationSeconds,
+        setValue: (value) => {
+          gameConfig.progression.waveDurationSeconds = Math.round(value);
+          if (this.session.currentWave) {
+            this.session.currentWave.durationSeconds = gameConfig.progression.waveDurationSeconds;
+            this.waveRemainingSeconds = Math.min(this.waveRemainingSeconds, gameConfig.progression.waveDurationSeconds);
+          }
+        },
+        format: (value) => `${Math.round(value)}s`,
+      },
+      {
+        key: "aggro_radius",
+        label: "Enemy Aggro",
+        description: "Distance at which enemies switch from wandering to chasing the hero.",
+        min: 120,
+        max: 1600,
+        step: 20,
+        getValue: () => gameConfig.runtime.enemy.defaultAggroRadius,
+        setValue: (value) => {
+          gameConfig.runtime.enemy.defaultAggroRadius = Math.round(value);
+          this.enemies.getChildren().forEach((enemy) => {
+            enemy.aggroRadius = gameConfig.runtime.enemy.defaultAggroRadius;
+          });
+        },
+        format: (value) => `${Math.round(value)}`,
+      },
+      {
+        key: "shotgun_cooldown",
+        label: "Shotgun Fire CD",
+        description: "Time between hero shotgun shots.",
+        min: 0.2,
+        max: 3,
+        step: 0.1,
+        getValue: () => gameConfig.runtime.hero.shotgun.cooldownMs / 1000,
+        setValue: (value) => {
+          gameConfig.runtime.hero.shotgun.cooldownMs = Math.round(value * 1000);
+          this.rebuildHeroWeapons();
+        },
+        format: (value) => `${value.toFixed(1)}s`,
+      },
+      {
+        key: "shotgun_reload",
+        label: "Shotgun Reload",
+        description: "Time required to refill the hero shotgun magazine.",
+        min: 0.4,
+        max: 3,
+        step: 0.1,
+        getValue: () => gameConfig.runtime.hero.shotgun.reloadMs / 1000,
+        setValue: (value) => {
+          gameConfig.runtime.hero.shotgun.reloadMs = Math.round(value * 1000);
+          this.rebuildHeroWeapons();
+        },
+        format: (value) => `${value.toFixed(1)}s`,
+      },
+    ];
+  }
+
+  rebuildHeroWeapons() {
+    const nextState = this.heroBuildSystem.resolveHeroProgression(this.hero.parameterStacks);
+    this.hero.stats = nextState.stats;
+    this.hero.weaponProfiles = nextState.weaponProfiles;
+    this.player.shotgunMagazineSize = this.hero.weaponProfiles.shotgun?.magazineSize ?? 0;
+    this.player.shotgunAmmo = Math.min(this.player.shotgunAmmo, this.player.shotgunMagazineSize);
+  }
+
   showLevelUpChoices() {
     this.uiSystem.hidePauseMenu();
     this.currentUpgradeCards = this.progressionSystem.createUpgradeOffer();
@@ -461,6 +559,10 @@ export class GameScene extends Phaser.Scene {
     if (this.session.pauseReason === "level_up") {
       return;
     }
+    if (this.session.pauseReason === "settings") {
+      this.closeSettingsPanel();
+      return;
+    }
     if (this.session.pauseReason === "pause_menu") {
       this.closePauseMenu();
       return;
@@ -469,7 +571,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   openPauseMenu() {
-    if (this.session.pauseReason === "level_up") {
+    if (this.session.pauseReason === "level_up" || this.session.pauseReason === "settings") {
       return;
     }
     this.uiSystem.showPauseMenu();
@@ -484,6 +586,33 @@ export class GameScene extends Phaser.Scene {
     this.setGameplayPaused(false, null);
   }
 
+  toggleSettingsPanel() {
+    if (this.session.pauseReason === "level_up") {
+      return;
+    }
+    if (this.session.pauseReason === "settings") {
+      this.closeSettingsPanel();
+      return;
+    }
+    this.openSettingsPanel();
+  }
+
+  openSettingsPanel() {
+    if (this.session.pauseReason === "pause_menu") {
+      this.closePauseMenu();
+    }
+    this.uiSystem.showSettingsPanel();
+    this.setGameplayPaused(true, "settings");
+  }
+
+  closeSettingsPanel() {
+    if (this.session.pauseReason !== "settings") {
+      return;
+    }
+    this.uiSystem.hideSettingsPanel();
+    this.setGameplayPaused(false, null);
+  }
+
   resolveWeaponTexture(weaponId) {
     const map = {
       melee: "melee-icon",
@@ -495,6 +624,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   resolveHeroWeaponTexture() {
+    if (this.hero.weaponProfiles.shotgun) {
+      return "shotgun-icon";
+    }
     if (this.hero.weaponProfiles.pistol) {
       return "pistol-icon";
     }

@@ -60,3 +60,6 @@
 - Added HUD ammo state for the hero shotgun and matched enemy pistol/shotgun shots with muzzle-flash VFX similar to the hero.
 - Reduced enemy weapon damage by another 5x with integer rounding and a minimum final damage of `1`.
 - Rounded gained XP and required XP thresholds to integers across session progression.
+- Set the hero shotgun default fire cooldown to `2s` and reload time to `2s`.
+- Compacted the HUD and added a pauseable settings window on `P` / top-right button with draggable live sliders, close button and scroll support.
+- Added matching half-arc melee VFX to enemies so their attacks read like the hero's attack language.

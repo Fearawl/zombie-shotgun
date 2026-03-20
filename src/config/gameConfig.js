@@ -4,7 +4,7 @@ const sharedBaseUnitStats = {
 };
 
 export const gameConfig = {
-  version: "preproduction-021",
+  version: "preproduction-022",
   runtime: {
     world: {
       width: 2200,
@@ -20,9 +20,9 @@ export const gameConfig = {
         damagePerPellet: 2,
         spreadRadians: 0.34,
         range: 290,
-        cooldownMs: 280,
+        cooldownMs: 2000,
         projectileSpeed: 900,
-        reloadMs: 700,
+        reloadMs: 2000,
       },
       contactDamageGraceMs: 450,
     },
@@ -39,6 +39,7 @@ export const gameConfig = {
     },
   },
   progression: {
+    baseSpawnIntervalSeconds: 1,
     waveDurationSeconds: 30,
     spawnAccelerationPerWave: 0.1,
     bossMultiplier: 5,

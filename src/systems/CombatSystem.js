@@ -569,14 +569,17 @@ export class CombatSystem {
   showMeleeSwing(scene, enemy, hero) {
     const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, hero.x, hero.y);
     const arc = scene.add.graphics().setDepth(6);
-    arc.lineStyle(3, enemy.weaponVfxTint, 0.95);
+    arc.fillStyle(enemy.weaponVfxTint, 0.12);
+    arc.slice(enemy.x, enemy.y, 26, angle - Math.PI / 2, angle + Math.PI / 2, false);
+    arc.fillPath();
+    arc.lineStyle(4, enemy.weaponVfxTint, 0.95);
     arc.beginPath();
-    arc.arc(enemy.x, enemy.y, 24, angle - 0.7, angle + 0.7, false);
+    arc.arc(enemy.x, enemy.y, 26, angle - Math.PI / 2, angle + Math.PI / 2, false);
     arc.strokePath();
     scene.tweens.add({
       targets: arc,
       alpha: 0,
-      duration: 120,
+      duration: 140,
       onComplete: () => arc.destroy(),
     });
   }

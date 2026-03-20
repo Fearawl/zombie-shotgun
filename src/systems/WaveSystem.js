@@ -26,7 +26,7 @@ export class WaveSystem {
   }
 
   getSpawnIntervalSeconds(waveNumber) {
-    const baseSeconds = 1;
+    const baseSeconds = this.config.progression.baseSpawnIntervalSeconds ?? 1;
     const multiplier = Math.pow(1 - this.config.progression.spawnAccelerationPerWave, waveNumber - 1);
     return Math.max(0.15, baseSeconds * multiplier);
   }
