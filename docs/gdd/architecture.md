@@ -45,6 +45,8 @@
   XP thresholds, level-up pause, upgrade card generation and application.
 - `src/systems/PresentationSystem.js`
   HP bars, numeric health text, parameter-driven shape/color/outline/VFX styling, wave banner text.
+- `src/systems/UiSystem.js`
+  HUD composition, pause menu, level-up overlay cards and related UI interactions.
 
 ## Data Flow
 1. `WaveSystem` starts a wave and asks `EnemyFactory` for the current wave descriptor.
@@ -94,8 +96,8 @@ Only one pause source should own input at a time. This is why pause state should
 ## Current Implementation Slice
 - `GameScene` is no longer a dashboard. It now hosts the first playable runtime slice driven by the new systems.
 - The following modules are already implemented and actively used by the scene:
-  `GameSession`, `EventBus`, `Hero`, `EnemyUnit`, `EnemyActor`, `Pickup`, `PickupActor`, `EnemyFactory`, `WaveSystem`, `SpawnSystem`, `CombatSystem`, `HeroBuildSystem`, `WeaponSystem`, `LootSystem`, `PickupSystem`, `ProgressionSystem`, `PresentationSystem`.
+  `GameSession`, `EventBus`, `Hero`, `EnemyUnit`, `EnemyActor`, `Pickup`, `PickupActor`, `EnemyFactory`, `WaveSystem`, `SpawnSystem`, `CombatSystem`, `HeroBuildSystem`, `WeaponSystem`, `LootSystem`, `PickupSystem`, `ProgressionSystem`, `PresentationSystem`, `UiSystem`.
 - Runtime features already connected:
   wave timer, persistent wave title HUD, regular enemy spawning, boss spawning, shotgun combat, enemy death drops, XP collection, level-up pause cards, pause menu and generated enemy weapon execution.
 - The next phase is to split remaining in-scene runtime logic into dedicated systems:
-  the remaining scene-owned UI composition details and broader combat/presentation tuning.
+  broader combat/presentation tuning and any remaining pause-state edge cases.

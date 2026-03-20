@@ -11,6 +11,7 @@ import { PickupSystem } from "../src/systems/PickupSystem.js";
 import { PresentationSystem } from "../src/systems/PresentationSystem.js";
 import { ProgressionSystem } from "../src/systems/ProgressionSystem.js";
 import { SpawnSystem } from "../src/systems/SpawnSystem.js";
+import { UiSystem } from "../src/systems/UiSystem.js";
 import { WaveSystem } from "../src/systems/WaveSystem.js";
 import { WeaponSystem } from "../src/systems/WeaponSystem.js";
 
@@ -44,6 +45,7 @@ export class GameScene extends Phaser.Scene {
     this.lootSystem = new LootSystem(gameConfig);
     this.pickupSystem = new PickupSystem(gameConfig, this.lootSystem);
     this.progressionSystem = new ProgressionSystem(gameConfig);
+    this.uiSystem = new UiSystem(this, gameConfig);
 
     this.eventBus.on("wave:created", (wave) => {
       this.session.setWaveState(wave);
@@ -115,161 +117,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   createUi() {
-    const { width, height } = this.scale;
-    this.topUi = this.add.container(0, 0).setScrollFactor(0).setDepth(20);
-
-    const leftPanel = this.add.graphics();
-    leftPanel.fillStyle(0x09131a, 0.86);
-    leftPanel.lineStyle(2, 0x315166, 1);
-    leftPanel.fillRoundedRect(16, 16, 320, 146, 16);
-    leftPanel.strokeRoundedRect(16, 16, 320, 146, 16);
-
-    this.heroUiText = this.add.text(34, 28, "", {
-      fontFamily: "Verdana, sans-serif",
-      fontSize: "18px",
-      color: "#f3d686",
-      lineSpacing: 6,
+    this.uiSystem.createHud();
+    this.uiSystem.createLevelUpOverlay((index) => this.selectUpgradeCard(index));
+    this.uiSystem.createPauseOverlay({
+      onContinue: () => this.closePauseMenu(),
+      onRestart: () => this.scene.start("GameScene"),
+      onExit: () => this.scene.start("StartScene"),
     });
-
-    this.waveCounterText = this.add
-      .text(width / 2, 18, "", {
-        fontFamily: "Arial Black, sans-serif",
-        fontSize: "26px",
-        color: "#f3ead1",
-        stroke: "#15222b",
-        strokeThickness: 5,
-      })
-      .setOrigin(0.5, 0);
-
-    this.waveBannerText = this.add
-      .text(width / 2, 56, "", {
-        fontFamily: "Arial Black, sans-serif",
-        fontSize: "24px",
-        color: "#bdeec1",
-        stroke: "#102219",
-        strokeThickness: 6,
-        align: "center",
-        wordWrap: { width: 820 },
-      })
-      .setOrigin(0.5, 0)
-      .setAlpha(1);
-
-    this.topUi.add([leftPanel, this.heroUiText, this.waveCounterText, this.waveBannerText]);
-
-    this.levelUpOverlay = this.add.container(0, 0).setScrollFactor(0).setDepth(50).setVisible(false);
-    const dim = this.add.rectangle(0, 0, width, height, 0x051016, 0.88).setOrigin(0, 0);
-    const panel = this.add.graphics();
-    panel.fillStyle(0x10212b, 0.96);
-    panel.lineStyle(3, 0x3c6075, 1);
-    panel.fillRoundedRect(width / 2 - 420, height / 2 - 170, 840, 340, 22);
-    panel.strokeRoundedRect(width / 2 - 420, height / 2 - 170, 840, 340, 22);
-    const title = this.add
-      .text(width / 2, height / 2 - 132, "Level Up", {
-        fontFamily: "Arial Black, sans-serif",
-        fontSize: "34px",
-        color: "#f7eed0",
-        stroke: "#162028",
-        strokeThickness: 6,
-      })
-      .setOrigin(0.5);
-    const subtitle = this.add
-      .text(width / 2, height / 2 - 88, "Choose one upgrade for the hero", {
-        fontFamily: "Verdana, sans-serif",
-        fontSize: "18px",
-        color: "#bdd0db",
-      })
-      .setOrigin(0.5);
-
-    this.levelUpOverlay.add([dim, panel, title, subtitle]);
-
-    this.levelCardViews = [];
-    for (let i = 0; i < gameConfig.hero.levelUp.cardsPerLevel; i += 1) {
-      const cardX = width / 2 - 260 + i * 260;
-      const card = this.createUpgradeCard(cardX, height / 2 + 14, i);
-      this.levelCardViews.push(card);
-      this.levelUpOverlay.add(card.container);
-    }
-
-    this.pauseOverlay = this.add.container(0, 0).setScrollFactor(0).setDepth(70).setVisible(false);
-    const pauseDim = this.add.rectangle(0, 0, width, height, 0x040b10, 0.82).setOrigin(0, 0);
-    const pausePanel = this.add.graphics();
-    pausePanel.fillStyle(0x10212b, 0.98);
-    pausePanel.lineStyle(3, 0x466c81, 1);
-    pausePanel.fillRoundedRect(width / 2 - 250, height / 2 - 140, 500, 280, 22);
-    pausePanel.strokeRoundedRect(width / 2 - 250, height / 2 - 140, 500, 280, 22);
-    const pauseTitle = this.add
-      .text(width / 2, height / 2 - 92, "Paused", {
-        fontFamily: "Arial Black, sans-serif",
-        fontSize: "34px",
-        color: "#f7eed0",
-        stroke: "#162028",
-        strokeThickness: 6,
-      })
-      .setOrigin(0.5);
-    this.pauseOverlay.add([pauseDim, pausePanel, pauseTitle]);
-
-    this.pauseButtons = [
-      this.createPauseButton(width / 2, height / 2 - 18, 0, "Continue", () => this.closePauseMenu()),
-      this.createPauseButton(width / 2, height / 2 + 36, 1, "Restart", () => this.scene.start("GameScene")),
-      this.createPauseButton(width / 2, height / 2 + 90, 2, "Exit", () => this.scene.start("StartScene")),
-    ];
-    this.pauseButtons.forEach((button) => this.pauseOverlay.add(button.container));
-  }
-
-  createUpgradeCard(x, y, index) {
-    const container = this.add.container(x, y).setScrollFactor(0).setDepth(52);
-    const background = this.add.graphics();
-    background.fillStyle(0x18303c, 1);
-    background.lineStyle(3, 0x4a7388, 1);
-    background.fillRoundedRect(-110, -86, 220, 172, 18);
-    background.strokeRoundedRect(-110, -86, 220, 172, 18);
-
-    const title = this.add
-      .text(0, -42, "", {
-        fontFamily: "Arial Black, sans-serif",
-        fontSize: "24px",
-        color: "#ffe4a3",
-        align: "center",
-        wordWrap: { width: 180 },
-      })
-      .setOrigin(0.5);
-
-    const description = this.add
-      .text(0, 16, "", {
-        fontFamily: "Verdana, sans-serif",
-        fontSize: "15px",
-        color: "#d8e3ea",
-        align: "center",
-        wordWrap: { width: 182 },
-      })
-      .setOrigin(0.5);
-
-    const buttonHint = this.add
-      .text(0, 58, "Pick", {
-        fontFamily: "Arial Black, sans-serif",
-        fontSize: "18px",
-        color: "#9ee59f",
-      })
-      .setOrigin(0.5);
-
-    const hitZone = this.add
-      .zone(x, y, 220, 172)
-      .setScrollFactor(0)
-      .setDepth(53)
-      .setVisible(false)
-      .setInteractive({ useHandCursor: true });
-    hitZone.input.enabled = false;
-
-    hitZone.on("pointerover", () => container.setScale(1.03));
-    hitZone.on("pointerout", () => container.setScale(1));
-    hitZone.on("pointerdown", () => container.setScale(0.98));
-    hitZone.on("pointerup", () => {
-      container.setScale(1.03);
-      this.selectUpgradeCard(index);
-    });
-
-    container.add([background, title, description, buttonHint]);
-    return { container, title, description, buttonHint, hitZone };
   }
 
   setupInput() {
@@ -280,38 +134,6 @@ export class GameScene extends Phaser.Scene {
         this.combatSystem.fireHeroShotgun(this, pointer);
       }
     });
-  }
-
-  createPauseButton(x, y, index, label, onClick) {
-    const container = this.add.container(x, y).setScrollFactor(0).setDepth(72);
-    const background = this.add.graphics();
-    background.fillStyle(index === 2 ? 0x5b2e2e : 0x18303c, 1);
-    background.lineStyle(3, 0x4a7388, 1);
-    background.fillRoundedRect(-90, -22, 180, 44, 14);
-    background.strokeRoundedRect(-90, -22, 180, 44, 14);
-    const text = this.add
-      .text(0, 0, label, {
-        fontFamily: "Arial Black, sans-serif",
-        fontSize: "20px",
-        color: "#f4ebd0",
-      })
-      .setOrigin(0.5);
-    const hitZone = this.add
-      .zone(x, y, 180, 44)
-      .setScrollFactor(0)
-      .setDepth(73)
-      .setVisible(false)
-      .setInteractive({ useHandCursor: true });
-    hitZone.input.enabled = false;
-    hitZone.on("pointerover", () => container.setScale(1.03));
-    hitZone.on("pointerout", () => container.setScale(1));
-    hitZone.on("pointerdown", () => container.setScale(0.98));
-    hitZone.on("pointerup", () => {
-      container.setScale(1.03);
-      onClick();
-    });
-    container.add([background, text]);
-    return { container, hitZone };
   }
 
   setupCollisions() {
@@ -383,13 +205,11 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.heroUiText.setText(
-      this.presentationSystem.formatHeroHud(this.player, this.session, this.kills, this.bossesSpawned)
+    this.uiSystem.updateHud(
+      this.presentationSystem.formatHeroHud(this.player, this.session, this.kills, this.bossesSpawned),
+      this.presentationSystem.formatWaveCounter(wave.waveNumber, this.waveRemainingSeconds),
+      this.presentationSystem.formatWaveTitle(wave.waveTitle)
     );
-    this.waveCounterText.setText(
-      this.presentationSystem.formatWaveCounter(wave.waveNumber, this.waveRemainingSeconds)
-    );
-    this.waveBannerText.setText(this.presentationSystem.formatWaveTitle(wave.waveTitle));
   }
 
   updateEnemyCombat() {
@@ -510,17 +330,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   showWaveBanner(text) {
-    this.waveBannerText.setText(text);
-    this.waveBannerText.setAlpha(1);
-    this.waveBannerText.setScale(1.06);
-    this.tweens.killTweensOf(this.waveBannerText);
-    this.tweens.add({
-      targets: this.waveBannerText,
-      scaleX: 1,
-      scaleY: 1,
-      duration: 240,
-      ease: "Sine.Out",
-    });
+    this.uiSystem.updateHud(
+      this.presentationSystem.formatHeroHud(this.player, this.session, this.kills, this.bossesSpawned),
+      this.presentationSystem.formatWaveCounter(this.session.currentWave.waveNumber, this.waveRemainingSeconds),
+      this.presentationSystem.formatWaveTitle(text)
+    );
+    this.uiSystem.animateWaveTitle();
   }
 
   handleEnemyDeath(enemy, deathPosition) {
@@ -548,17 +363,7 @@ export class GameScene extends Phaser.Scene {
 
   showLevelUpChoices() {
     this.currentUpgradeCards = this.progressionSystem.createUpgradeOffer();
-    this.levelCardViews.forEach((view, index) => {
-      const card = this.currentUpgradeCards[index];
-      view.title.setText(card?.title ?? "");
-      view.description.setText(card?.description ?? "");
-      view.buttonHint.setText(card ? "Pick" : "");
-      view.container.setVisible(Boolean(card));
-      view.hitZone.setVisible(Boolean(card));
-      view.hitZone.input.enabled = Boolean(card);
-      view.container.setScale(1);
-    });
-    this.levelUpOverlay.setVisible(true);
+    this.uiSystem.showLevelUpCards(this.currentUpgradeCards);
     this.setGameplayPaused(true, "level_up");
   }
 
@@ -575,11 +380,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.player.healthPoints = Math.min(this.player.healthPoints, this.player.maxHealth);
     this.currentUpgradeCards = null;
-    this.levelCardViews.forEach((view) => {
-      view.hitZone.setVisible(false);
-      view.hitZone.input.enabled = false;
-    });
-    this.levelUpOverlay.setVisible(false);
+    this.uiSystem.hideLevelUpCards();
     this.setGameplayPaused(false, null);
   }
 
@@ -624,22 +425,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   openPauseMenu() {
-    this.pauseButtons.forEach((button) => {
-      button.hitZone.setVisible(true);
-      button.hitZone.input.enabled = true;
-      button.container.setScale(1);
-    });
-    this.pauseOverlay.setVisible(true);
+    this.uiSystem.showPauseMenu();
     this.setGameplayPaused(true, "pause_menu");
   }
 
   closePauseMenu() {
-    this.pauseButtons.forEach((button) => {
-      button.hitZone.setVisible(false);
-      button.hitZone.input.enabled = false;
-      button.container.setScale(1);
-    });
-    this.pauseOverlay.setVisible(false);
+    this.uiSystem.hidePauseMenu();
     this.setGameplayPaused(false, null);
   }
 

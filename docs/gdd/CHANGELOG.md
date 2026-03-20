@@ -40,3 +40,4 @@
 - Added pause menu on `Esc` with continue, restart and exit actions.
 - Kept the full wave title permanently visible on HUD alongside the wave state.
 - Added weapon sprites to units: the hero now carries a shotgun sprite by default, and enemies display the sprite of their dominant weapon.
+- Added `UiSystem` and moved HUD, level-up overlay and pause menu construction out of `GameScene`.
