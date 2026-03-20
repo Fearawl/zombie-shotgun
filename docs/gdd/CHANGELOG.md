@@ -28,3 +28,4 @@
 - Added `HeroBuildSystem` for hero stat/weapon recomposition after upgrades.
 - Added `PickupSystem` for pickup spawn, lifetime updates, collection effects and boss star burst handling.
 - Reduced `GameScene` further to wiring, UI and wave orchestration responsibilities.
+- Fixed level-up overlay render order so upgrade cards stay above the modal background and remain clickable.

@@ -178,6 +178,8 @@ export class GameScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    this.levelUpOverlay.add([dim, panel, title, subtitle]);
+
     this.levelCardViews = [];
     for (let i = 0; i < gameConfig.hero.levelUp.cardsPerLevel; i += 1) {
       const cardX = width / 2 - 260 + i * 260;
@@ -185,8 +187,6 @@ export class GameScene extends Phaser.Scene {
       this.levelCardViews.push(card);
       this.levelUpOverlay.add(card.container);
     }
-
-    this.levelUpOverlay.add([dim, panel, title, subtitle]);
   }
 
   createUpgradeCard(x, y, index) {
