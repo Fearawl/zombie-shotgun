@@ -59,6 +59,13 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     return false;
   }
 
+  getDropPosition() {
+    return {
+      x: this.x,
+      y: this.y,
+    };
+  }
+
   drawHealthBar() {
     this.healthBar.clear();
     this.healthBar.fillStyle(0x371718, 0.9);
@@ -74,6 +81,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   }
 
   die() {
+    const dropPosition = this.getDropPosition();
     this.shadow.destroy();
     this.healthBar.destroy();
 
@@ -83,6 +91,10 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
       alpha: 0.3,
       duration: 1800,
     });
+
+    if (this.scene && this.scene.spawnZombieAmmoDrop) {
+      this.scene.spawnZombieAmmoDrop(dropPosition.x, dropPosition.y);
+    }
 
     this.destroy();
   }

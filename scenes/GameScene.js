@@ -4,9 +4,14 @@ import { Zombie } from "../src/entities/Zombie.js";
 const ROUND_DURATION_MS = 60000;
 const PLAYER_SPEED = 250;
 const PLAYER_MAX_AMMO = 8;
-const SHOT_DAMAGE = 7;
+const SHOT_DAMAGE = 5;
 const SHOT_COOLDOWN_MS = 280;
-const ZOMBIE_COUNT = 6;
+const SHOT_PELLET_COUNT = 8;
+const SHOT_SPREAD = 0.34;
+const SHOT_TRAVEL_DISTANCE = Math.round(960 * 0.3);
+const SHOT_SPEED = 900;
+const SHOT_LIFETIME_MS = Math.round((SHOT_TRAVEL_DISTANCE / SHOT_SPEED) * 1000);
+const ZOMBIE_COUNT = 18;
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -82,11 +87,19 @@ export class GameScene extends Phaser.Scene {
       [880, 860],
       [1420, 520],
       [1540, 900],
+      [1680, 610],
+      [1320, 1120],
+      [980, 1180],
+      [640, 980],
+      [1710, 1180],
+      [1880, 760],
     ];
 
     for (let i = 0; i < ZOMBIE_COUNT; i += 1) {
       const [x, y] = points[i % points.length];
-      const zombie = new Zombie(this, x, y);
+      const offsetX = Math.floor(i / points.length) * 58;
+      const offsetY = (i % 2 === 0 ? 1 : -1) * Math.floor(i / points.length) * 44;
+      const zombie = new Zombie(this, x + offsetX, y + offsetY);
       this.zombies.add(zombie);
     }
   }
@@ -246,21 +259,22 @@ export class GameScene extends Phaser.Scene {
     const targetY = pointer.worldY;
     const baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, targetX, targetY);
 
-    for (let i = 0; i < 6; i += 1) {
-      const angle = baseAngle + Phaser.Math.FloatBetween(-0.16, 0.16);
+    for (let i = 0; i < SHOT_PELLET_COUNT; i += 1) {
+      const t = SHOT_PELLET_COUNT === 1 ? 0.5 : i / (SHOT_PELLET_COUNT - 1);
+      const angle = baseAngle + Phaser.Math.Linear(-SHOT_SPREAD, SHOT_SPREAD, t);
       const pellet = this.physics.add.image(
         this.player.x + Math.cos(angle) * 30,
         this.player.y + Math.sin(angle) * 30,
         "pellet"
       );
       pellet.setDepth(5);
-      pellet.setVelocity(Math.cos(angle) * 620, Math.sin(angle) * 620);
+      pellet.setVelocity(Math.cos(angle) * SHOT_SPEED, Math.sin(angle) * SHOT_SPEED);
       pellet.body.allowGravity = false;
       pellet.damage = SHOT_DAMAGE;
       pellet.shotId = this.shotSequence;
       this.pellets.add(pellet);
 
-      this.time.delayedCall(220, () => {
+      this.time.delayedCall(SHOT_LIFETIME_MS, () => {
         if (pellet.active) {
           pellet.destroy();
         }
@@ -303,11 +317,19 @@ export class GameScene extends Phaser.Scene {
     pickup.consume();
     this.flashUi("#f9d27b");
 
-    this.time.delayedCall(5000, () => {
+    if (!pickup.shouldRespawn) {
+      return;
+    }
+
+    this.time.delayedCall(pickup.respawnDelayMs, () => {
       if (!pickup.scene || pickup.active) {
         return;
       }
-      const respawned = new AmmoPickup(this, pickup.spawnPoint.x, pickup.spawnPoint.y);
+      const respawned = new AmmoPickup(this, pickup.spawnPoint.x, pickup.spawnPoint.y, {
+        ammoAmount: pickup.ammoAmount,
+        respawnDelayMs: pickup.respawnDelayMs,
+        shouldRespawn: pickup.shouldRespawn,
+      });
       this.pickups.add(respawned);
     });
   }
@@ -360,6 +382,14 @@ export class GameScene extends Phaser.Scene {
       kills: this.kills,
       elapsedSeconds: 60,
     });
+  }
+
+  spawnZombieAmmoDrop(x, y) {
+    const pickup = new AmmoPickup(this, x, y, {
+      ammoAmount: 2,
+      shouldRespawn: false,
+    });
+    this.pickups.add(pickup);
   }
 
   drawArena() {
