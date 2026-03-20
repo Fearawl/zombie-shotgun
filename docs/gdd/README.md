@@ -70,6 +70,11 @@ Preproduction. The current playable prototype exists only as a temporary sandbox
 - Bosses are generated separately from normal wave enemies.
 - Pickup lifetime is limited to 20 seconds.
 - Pickups blink during the last 5 seconds before disappearing.
+- If a parameter reaches the third naming tier, use `X = stacks - 2`.
+- Dominant weapon is determined by total bonus count for that weapon, including the base package.
+- Different weapon types stay active in parallel on their own cooldowns.
+- Repeated rolls of the same weapon type stack their bonuses into that weapon.
+- Hero upgrade cards use the shared parameter pool and all 3 cards in one offer must be unique.
 - The current prototype can be treated as a reference only. The next implementation phase is effectively a new project built on the approved architecture.
 
 ## Current Target Deliverables

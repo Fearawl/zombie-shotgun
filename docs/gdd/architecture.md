@@ -49,15 +49,18 @@
 5. `CombatSystem` and `WeaponSystem` process attacks and projectiles.
 6. On death, `LootSystem` handles drops.
 7. On XP gain, `ProgressionSystem` checks level-up and pauses the run for upgrade cards.
+8. `ProgressionSystem` generates 3 unique upgrade cards from the shared parameter pool.
 
 ## Enemy Parameter Assembly
 - Start from base parameters.
 - Roll `waveNumber` additional parameters.
 - Parameter duplicates stack numerically.
-- Parameter duplicates also escalate adjective wording from tier 1 to tier 2 to tier `X`.
-- Determine dominant weapon parameter for shape override.
+- Parameter duplicates also escalate adjective wording from tier 1 to tier 2 to tier `X`, where `X = stacks - 2`.
+- Determine dominant weapon parameter for shape override by total bonus count for that weapon, including the base package.
 - Rebuild the enemy package from scratch for each new wave.
 - For bosses, make a separate random roll and apply extra x5 multiplier after boss parameter assembly.
+- If multiple weapon types exist, they all attack in parallel on their own cooldowns.
+- If the same weapon type repeats, its bonuses stack into one weapon profile.
 
 ## Wave Naming Pipeline
 - Each parameter contributes one adjective fragment.

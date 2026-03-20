@@ -1,9 +1,5 @@
 # Open Questions
 
-## Gameplay
-- When a wave rolls the same weapon parameter multiple times, should that weapon become strictly dominant over all previous weapon rolls, or only if its total score is highest?
-- When the same non-weapon parameter repeats, should adjective tier advance strictly by stack count `1 -> 2 -> X`, while the numeric bonus always sums linearly?
-
 ## Targeting
 - How should enemy ranged targeting behave?
   Current proposal: direct aim at hero center with no leading.
@@ -11,8 +7,7 @@
   Current proposal: configurable random offset radius.
 
 ## Hero Level-Up Cards
-- Can duplicate cards appear in the same level-up choice?
-  Current proposal: no duplicates within the same offer.
+- Should level-up card offers be fully random from the shared pool, or should there be category weighting to improve build variety?
 
 ## Wave Presentation
 - Do we want the full generated wave title shown only at wave start, or also pinned near the wave counter?

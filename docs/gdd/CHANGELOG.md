@@ -10,3 +10,7 @@
 - Confirmed that bosses roll their own separate parameter set.
 - Confirmed that hero upgrades currently share the same parameter pool as enemies.
 - Confirmed 20 second pickup lifetime with 5 second blink window.
+- Confirmed `X = stacks - 2` for third-tier naming.
+- Confirmed dominant weapon is defined by total bonus count including the base package.
+- Confirmed mixed weapon types run in parallel, while repeated weapon rolls stack into one profile.
+- Confirmed no duplicate upgrade cards inside one level-up offer.

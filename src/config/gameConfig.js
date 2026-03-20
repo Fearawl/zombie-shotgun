@@ -22,6 +22,7 @@ export const gameConfig = {
       cardsPerLevel: 3,
       pauseOnLevelUp: true,
       parameterPoolSource: "shared_with_enemies",
+      duplicateCardsAllowedPerOffer: false,
     },
   },
   enemy: {
@@ -64,6 +65,14 @@ export const gameConfig = {
     multiplier: 5,
   },
   parameters: {
+    naming: {
+      tier3Formula: "stacks_minus_2",
+    },
+    weapons: {
+      dominantWeaponRule: "highest_bonus_count_including_base",
+      mixedWeaponBehavior: "parallel_cooldowns",
+      duplicateWeaponBehavior: "stack_same_weapon_bonuses",
+    },
     vitality: {
       type: "stat",
       healthBonus: 5,
