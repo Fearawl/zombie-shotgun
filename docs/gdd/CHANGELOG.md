@@ -49,3 +49,5 @@
 - Tightened modal pause flow so level-up state keeps priority over the pause menu and modal transitions cannot resume gameplay out of order.
 - Slowed enemy damage growth by adding a dedicated enemy-only damage scaling multiplier set to `0.5`.
 - Reduced hero XP requirement growth from `x2` per level to `x1.1`.
+- Synced hero pistol bullets and shotgun pellets with delayed damage application based on projectile travel time.
+- Unified the hero's default base health and movement speed with the base enemy profile.

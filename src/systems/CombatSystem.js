@@ -67,7 +67,7 @@ export class CombatSystem {
         ease: "Linear",
         onComplete: () => pellet.destroy(),
       });
-      this.applyHeroPelletDamage(scene, angle, shotgun.radius, shotgun.damagePerPellet);
+      this.applyHeroPelletDamage(scene, angle, shotgun.radius, shotgun.damagePerPellet, shotgun.projectileSpeed);
     }
 
     this.showMuzzleFlash(scene, baseAngle);
@@ -92,17 +92,22 @@ export class CombatSystem {
       .setScale(1.25)
       .setTint(0xfff3c3);
     scene.heroProjectiles.add(projectile);
+    const hitTarget = this.findHeroPistolTarget(scene, angle, pistol.radius);
+    const hitDistance = hitTarget
+      ? Phaser.Math.Distance.Between(scene.player.x, scene.player.y, hitTarget.x, hitTarget.y)
+      : pistol.radius;
+    const hitDuration = Math.round((hitDistance / pistol.projectileSpeed) * 1000);
     scene.tweens.add({
       targets: projectile,
-      x: scene.player.x + Math.cos(angle) * pistol.radius,
-      y: scene.player.y + Math.sin(angle) * pistol.radius,
+      x: scene.player.x + Math.cos(angle) * hitDistance,
+      y: scene.player.y + Math.sin(angle) * hitDistance,
       alpha: 0.1,
-      duration: Math.round((pistol.radius / pistol.projectileSpeed) * 1000),
+      duration: hitDuration,
       ease: "Linear",
       onComplete: () => projectile.destroy(),
     });
 
-    this.applyHeroPistolDamage(scene, angle, pistol.radius, pistol.damage);
+    this.applyHeroPistolDamage(scene, hitTarget, pistol.damage, hitDuration);
     return true;
   }
 
@@ -185,7 +190,7 @@ export class CombatSystem {
     return true;
   }
 
-  applyHeroPelletDamage(scene, angle, range, damage) {
+  applyHeroPelletDamage(scene, angle, range, damage, projectileSpeed) {
     scene.enemies.getChildren().forEach((enemy) => {
       if (!enemy.active) {
         return;
@@ -193,16 +198,14 @@ export class CombatSystem {
       if (!this.isTargetInsideShot(scene.player, enemy, angle, range, 18)) {
         return;
       }
-
-      const inflictedDamage = Math.max(1, damage - (enemy.armorValue ?? 0));
-      const died = enemy.takeDamage(inflictedDamage);
-      if (died) {
-        scene.kills += 1;
-      }
+      const hitDelay = Math.round(
+        (Phaser.Math.Distance.Between(scene.player.x, scene.player.y, enemy.x, enemy.y) / projectileSpeed) * 1000
+      );
+      this.scheduleHeroDamage(scene, enemy, damage, hitDelay);
     });
   }
 
-  applyHeroPistolDamage(scene, angle, range, damage) {
+  findHeroPistolTarget(scene, angle, range) {
     let bestTarget = null;
     let bestDistance = Number.MAX_SAFE_INTEGER;
     scene.enemies.getChildren().forEach((enemy) => {
@@ -219,14 +222,28 @@ export class CombatSystem {
       }
     });
 
-    if (!bestTarget) {
+    return bestTarget;
+  }
+
+  applyHeroPistolDamage(scene, target, damage, hitDelay) {
+    if (!target) {
       return;
     }
 
-    const died = bestTarget.takeDamage(Math.max(1, damage - (bestTarget.armorValue ?? 0)));
-    if (died) {
-      scene.kills += 1;
-    }
+    this.scheduleHeroDamage(scene, target, damage, hitDelay);
+  }
+
+  scheduleHeroDamage(scene, enemy, damage, delayMs) {
+    scene.time.delayedCall(delayMs, () => {
+      if (!enemy?.active) {
+        return;
+      }
+      const inflictedDamage = Math.max(1, damage - (enemy.armorValue ?? 0));
+      const died = enemy.takeDamage(inflictedDamage);
+      if (died) {
+        scene.kills += 1;
+      }
+    });
   }
 
   resolveHeroGrenadeExplosion(scene, x, y, damage, radius) {

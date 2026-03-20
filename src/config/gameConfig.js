@@ -1,5 +1,10 @@
+const sharedBaseUnitStats = {
+  health: 5,
+  moveSpeed: 5,
+};
+
 export const gameConfig = {
-  version: "preproduction-014",
+  version: "preproduction-015",
   runtime: {
     world: {
       width: 2200,
@@ -46,8 +51,8 @@ export const gameConfig = {
   },
   hero: {
     base: {
-      health: 10,
-      moveSpeed: 10,
+      health: sharedBaseUnitStats.health,
+      moveSpeed: sharedBaseUnitStats.moveSpeed,
     },
     levelUp: {
       cardsPerLevel: 3,
@@ -64,8 +69,8 @@ export const gameConfig = {
       weaponVfxColor: "#f1cf58",
     },
     baseStats: {
-      health: 5,
-      moveSpeed: 5,
+      health: sharedBaseUnitStats.health,
+      moveSpeed: sharedBaseUnitStats.moveSpeed,
       attackCooldownSeconds: 2,
     },
     baseWeapons: {
