@@ -28,6 +28,16 @@ export class StartScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    this.add
+      .text(width - 26, 24, "v001", {
+        fontFamily: "Arial Black, sans-serif",
+        fontSize: "26px",
+        color: "#ffe59f",
+        stroke: "#2d1709",
+        strokeThickness: 4,
+      })
+      .setOrigin(1, 0);
+
     const button = this.createButton(width / 2, height - 92, 240, 68, "START");
     button.on("pointerup", () => {
       this.scene.start("GameScene");

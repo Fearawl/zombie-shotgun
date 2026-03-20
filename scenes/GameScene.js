@@ -3,15 +3,18 @@ import { Zombie } from "../src/entities/Zombie.js";
 
 const ROUND_DURATION_MS = 60000;
 const PLAYER_SPEED = 250;
-const PLAYER_MAX_AMMO = 8;
+const STARTING_AMMO = 10;
 const SHOT_DAMAGE = 5;
 const SHOT_COOLDOWN_MS = 280;
 const SHOT_PELLET_COUNT = 8;
 const SHOT_SPREAD = 0.34;
-const SHOT_TRAVEL_DISTANCE = Math.round(960 * 0.3);
 const SHOT_SPEED = 900;
-const SHOT_LIFETIME_MS = Math.round((SHOT_TRAVEL_DISTANCE / SHOT_SPEED) * 1000);
 const ZOMBIE_COUNT = 18;
+const RANGE_PRESETS = [
+  { label: "Short", screenRatio: 0.22, color: 0xa0d8ff },
+  { label: "Medium", screenRatio: 0.3, color: 0xf3d57d },
+  { label: "Long", screenRatio: 0.38, color: 0xffa970 },
+];
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -20,6 +23,7 @@ export class GameScene extends Phaser.Scene {
     this.lastShotAt = 0;
     this.isRoundFinished = false;
     this.shotSequence = 0;
+    this.rangePresetIndex = 1;
   }
 
   create() {
@@ -28,6 +32,7 @@ export class GameScene extends Phaser.Scene {
     this.roundEndsAt = this.time.now + ROUND_DURATION_MS;
     this.lastShotAt = -SHOT_COOLDOWN_MS;
     this.shotSequence = 0;
+    this.rangePresetIndex = 1;
 
     this.physics.world.setBounds(0, 0, 2200, 1600);
     this.cameras.main.setBackgroundColor("#17261b");
@@ -59,10 +64,11 @@ export class GameScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(360, 300, "player-body");
     this.player.setCollideWorldBounds(true);
     this.player.setCircle(18, 4, 4);
-    this.player.ammo = PLAYER_MAX_AMMO;
+    this.player.ammo = STARTING_AMMO;
     this.player.facingAngle = 0;
 
     this.playerShadow = this.add.ellipse(this.player.x + 6, this.player.y + 24, 44, 18, 0x000000, 0.24);
+    this.shotRangeGraphics = this.add.graphics().setDepth(1);
     this.playerGun = this.add.graphics();
   }
 
@@ -110,8 +116,8 @@ export class GameScene extends Phaser.Scene {
     const panel = this.add.graphics();
     panel.fillStyle(0x09131a, 0.85);
     panel.lineStyle(2, 0x305164, 1);
-    panel.fillRoundedRect(0, 0, 248, 118, 16);
-    panel.strokeRoundedRect(0, 0, 248, 118, 16);
+    panel.fillRoundedRect(0, 0, 320, 150, 16);
+    panel.strokeRoundedRect(0, 0, 320, 150, 16);
     this.ui.add(panel);
 
     this.ammoText = this.add.text(20, 16, "", {
@@ -129,8 +135,13 @@ export class GameScene extends Phaser.Scene {
       fontSize: "20px",
       color: "#b7dfff",
     });
+    this.rangeText = this.add.text(20, 112, "", {
+      fontFamily: "Verdana, sans-serif",
+      fontSize: "18px",
+      color: "#f2cfa4",
+    });
 
-    this.ui.add([this.ammoText, this.killsText, this.timerText]);
+    this.ui.add([this.ammoText, this.killsText, this.timerText, this.rangeText]);
     this.updateUi();
   }
 
@@ -142,9 +153,18 @@ export class GameScene extends Phaser.Scene {
 
   setupInput() {
     this.keys = this.input.keyboard.addKeys("W,A,S,D");
+    if (this.input.mouse) {
+      this.input.mouse.disableContextMenu();
+    }
+    this.game.canvas.oncontextmenu = (event) => event.preventDefault();
     this.input.on("pointerdown", (pointer) => {
       if (pointer.leftButtonDown()) {
         this.tryShoot(pointer);
+        return;
+      }
+
+      if (pointer.rightButtonDown()) {
+        this.cycleShotRange();
       }
     });
   }
@@ -162,6 +182,7 @@ export class GameScene extends Phaser.Scene {
     this.updatePlayerMovement();
     this.updateAim();
     this.updatePlayerVisuals();
+    this.updateShotRangeIndicator();
     this.updateUi();
 
     if (this.time.now >= this.roundEndsAt) {
@@ -232,9 +253,11 @@ export class GameScene extends Phaser.Scene {
 
   updateUi() {
     const secondsLeft = Math.max(0, Math.ceil((this.roundEndsAt - this.time.now) / 1000));
-    this.ammoText.setText(`Ammo: ${this.player.ammo}/${PLAYER_MAX_AMMO}`);
+    const ammoDisplayCap = Math.max(STARTING_AMMO, this.player.ammo);
+    this.ammoText.setText(`Ammo: ${this.player.ammo}/${ammoDisplayCap}`);
     this.killsText.setText(`Zombies down: ${this.kills}`);
     this.timerText.setText(`Time: ${secondsLeft}s`);
+    this.rangeText.setText(`Range: ${this.getCurrentRangePreset().label} (RMB)`);
   }
 
   tryShoot(pointer) {
@@ -258,6 +281,8 @@ export class GameScene extends Phaser.Scene {
     const targetX = pointer.worldX;
     const targetY = pointer.worldY;
     const baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, targetX, targetY);
+    const rangeDistance = this.getCurrentShotDistance();
+    const shotLifetimeMs = Math.round((rangeDistance / SHOT_SPEED) * 1000);
 
     for (let i = 0; i < SHOT_PELLET_COUNT; i += 1) {
       const t = SHOT_PELLET_COUNT === 1 ? 0.5 : i / (SHOT_PELLET_COUNT - 1);
@@ -274,7 +299,7 @@ export class GameScene extends Phaser.Scene {
       pellet.shotId = this.shotSequence;
       this.pellets.add(pellet);
 
-      this.time.delayedCall(SHOT_LIFETIME_MS, () => {
+      this.time.delayedCall(shotLifetimeMs, () => {
         if (pellet.active) {
           pellet.destroy();
         }
@@ -308,12 +333,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const addedAmmo = Math.min(PLAYER_MAX_AMMO - player.ammo, pickup.ammoAmount);
-    if (addedAmmo <= 0) {
-      return;
-    }
-
-    player.ammo += addedAmmo;
+    player.ammo += pickup.ammoAmount;
     pickup.consume();
     this.flashUi("#f9d27b");
 
@@ -386,10 +406,58 @@ export class GameScene extends Phaser.Scene {
 
   spawnZombieAmmoDrop(x, y) {
     const pickup = new AmmoPickup(this, x, y, {
-      ammoAmount: 2,
+      ammoAmount: 10,
       shouldRespawn: false,
     });
     this.pickups.add(pickup);
+  }
+
+  cycleShotRange() {
+    this.rangePresetIndex = (this.rangePresetIndex + 1) % RANGE_PRESETS.length;
+    this.flashUi("#ffd78e");
+  }
+
+  getCurrentRangePreset() {
+    return RANGE_PRESETS[this.rangePresetIndex];
+  }
+
+  getCurrentShotDistance() {
+    return Math.round(this.scale.width * this.getCurrentRangePreset().screenRatio);
+  }
+
+  updateShotRangeIndicator() {
+    const angle = this.player.facingAngle;
+    const distance = this.getCurrentShotDistance();
+    const preset = this.getCurrentRangePreset();
+    const points = [];
+    const segments = 12;
+    const startAngle = angle - SHOT_SPREAD;
+    const endAngle = angle + SHOT_SPREAD;
+
+    this.shotRangeGraphics.clear();
+    this.shotRangeGraphics.fillStyle(preset.color, 0.12);
+    this.shotRangeGraphics.lineStyle(2, preset.color, 0.38);
+
+    points.push(new Phaser.Geom.Point(this.player.x, this.player.y));
+    for (let i = 0; i <= segments; i += 1) {
+      const t = i / segments;
+      const currentAngle = Phaser.Math.Linear(startAngle, endAngle, t);
+      points.push(
+        new Phaser.Geom.Point(
+          this.player.x + Math.cos(currentAngle) * distance,
+          this.player.y + Math.sin(currentAngle) * distance
+        )
+      );
+    }
+
+    this.shotRangeGraphics.beginPath();
+    this.shotRangeGraphics.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i += 1) {
+      this.shotRangeGraphics.lineTo(points[i].x, points[i].y);
+    }
+    this.shotRangeGraphics.closePath();
+    this.shotRangeGraphics.fillPath();
+    this.shotRangeGraphics.strokePath();
   }
 
   drawArena() {

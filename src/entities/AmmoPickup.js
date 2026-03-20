@@ -6,7 +6,7 @@ export class AmmoPickup extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
 
     this.spawnPoint = new Phaser.Math.Vector2(x, y);
-    this.ammoAmount = options.ammoAmount ?? 4;
+    this.ammoAmount = options.ammoAmount ?? 10;
     this.respawnDelayMs = options.respawnDelayMs ?? 5000;
     this.shouldRespawn = options.shouldRespawn ?? true;
 
