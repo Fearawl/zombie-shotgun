@@ -16,7 +16,7 @@ export class HeroBuildSystem {
 
     return {
       stats,
-      weaponProfiles: this.weaponSystem.buildWeaponProfiles(parameterStacks),
+      weaponProfiles: this.weaponSystem.buildHeroWeaponProfiles(parameterStacks),
     };
   }
 

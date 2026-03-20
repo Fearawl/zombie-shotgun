@@ -25,6 +25,7 @@ export class BootScene extends Phaser.Scene {
     this.makeSquareTexture("enemy-square", 42, 0x7fb36b, 0x2c5132);
     this.makeCircleTexture("pellet", 8, 0xffe08c, 0x7f5a23);
     this.makeCircleTexture("pistol-bullet", 6, 0xfff4bf, 0x85672f);
+    this.makeCircleTexture("enemy-bullet", 12, 0xfff1bf, 0x8b5f12);
     this.makeCircleTexture("grenade-orb", 18, 0x4f5962, 0x1d242b);
     this.makeRoundedRectTexture("ammo-box", 50, 34, 8, 0xca8b4d, 0x5f3a1d);
     this.makeRoundedRectTexture("pistol-ammo-box", 50, 34, 8, 0x6f8fd8, 0x23385d);
@@ -33,7 +34,7 @@ export class BootScene extends Phaser.Scene {
     this.makeRoundedRectTexture("pistol-icon", 12, 20, 3, 0xd9edf9, 0x4d6f87);
     this.makeCircleTexture("grenade-icon", 12, 0xb4c0ca, 0x42505e);
     this.makeShotgunIconTexture("shotgun-icon", 34, 14, 0x7a532d, 0x24140b);
-    this.makeMeleeIconTexture("melee-icon", 24, 10, 0xc89657, 0x5a3112);
+    this.makeAxeIconTexture("melee-icon", 30, 24, 0xc8d1d6, 0x5a3112);
     this.makeMedkitTexture("medkit-pickup", 30);
     this.makeStarTexture("xp-star", 28, 0xf8e37b, 0xa5791f);
   }
@@ -142,14 +143,16 @@ export class BootScene extends Phaser.Scene {
     graphics.destroy();
   }
 
-  makeMeleeIconTexture(key, width, height, fillColor, strokeColor) {
+  makeAxeIconTexture(key, width, height, bladeColor, handleColor) {
     const graphics = this.make.graphics({ x: 0, y: 0, add: false });
-    graphics.fillStyle(fillColor, 1);
-    graphics.lineStyle(2, strokeColor, 1);
-    graphics.fillRoundedRect(2, height / 2 - 2, width - 10, 4, 2);
-    graphics.strokeRoundedRect(2, height / 2 - 2, width - 10, 4, 2);
-    graphics.fillCircle(width - 7, height / 2, 4);
-    graphics.strokeCircle(width - 7, height / 2, 4);
+    graphics.lineStyle(2, handleColor, 1);
+    graphics.fillStyle(0x8b6438, 1);
+    graphics.fillRoundedRect(width / 2 - 2, 4, 4, height - 6, 2);
+    graphics.strokeRoundedRect(width / 2 - 2, 4, 4, height - 6, 2);
+    graphics.fillStyle(bladeColor, 1);
+    graphics.lineStyle(2, 0x55616b, 1);
+    graphics.fillTriangle(width / 2, 6, width - 4, 12, width / 2, 18);
+    graphics.strokeTriangle(width / 2, 6, width - 4, 12, width / 2, 18);
     graphics.generateTexture(key, width, height);
     graphics.destroy();
   }

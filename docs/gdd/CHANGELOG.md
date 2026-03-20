@@ -41,3 +41,7 @@
 - Kept the full wave title permanently visible on HUD alongside the wave state.
 - Added weapon sprites to units: the hero now carries a shotgun sprite by default, and enemies display the sprite of their dominant weapon.
 - Added `UiSystem` and moved HUD, level-up overlay and pause menu construction out of `GameScene`.
+- Reworked hero combat to support held-fire on LMB instead of single-click shots.
+- If the hero rolls pistol upgrades, pistol shots now fire in parallel with the default shotgun while LMB is held.
+- If the hero rolls melee upgrades, the melee strike now auto-triggers on cooldown against nearby enemies.
+- Replaced the melee weapon sprite with an axe and made enemy pistol bullets larger and easier to read.

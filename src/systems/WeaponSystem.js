@@ -55,6 +55,83 @@ export class WeaponSystem {
     return profiles;
   }
 
+  buildHeroWeaponProfiles(parameterStacks) {
+    const reloadStacks = parameterStacks.reload ?? 0;
+    const shotgunStacks = parameterStacks.shotgunWeapon ?? 0;
+    const pistolStacks = parameterStacks.pistolWeapon ?? 0;
+    const meleeStacks = parameterStacks.meleeWeapon ?? 0;
+    const grenadeStacks = parameterStacks.grenadeWeapon ?? 0;
+    const baseMelee = this.config.enemy.baseWeapons.melee;
+    const shotgunRuntime = this.config.runtime.hero.shotgun;
+    const profiles = {
+      shotgun: {
+        id: "shotgun",
+        pellets: shotgunRuntime.pellets,
+        damagePerPellet:
+          shotgunRuntime.damagePerPellet +
+          shotgunStacks * this.config.parameters.shotgunWeapon.damageBonus,
+        radius:
+          shotgunRuntime.range +
+          shotgunStacks * this.config.parameters.shotgunWeapon.radiusBonus,
+        spreadRadians: shotgunRuntime.spreadRadians,
+        cooldownMs: Math.max(
+          80,
+          shotgunRuntime.cooldownMs -
+            reloadStacks * this.config.parameters.reload.cooldownReductionSeconds * 1000
+        ),
+        projectileSpeed:
+          shotgunRuntime.projectileSpeed +
+          shotgunStacks * this.config.parameters.shotgunWeapon.projectileSpeedBonus,
+        bonusCount: 1 + shotgunStacks,
+      },
+    };
+
+    if (pistolStacks > 0) {
+      profiles.pistol = {
+        id: "pistol",
+        damage: pistolStacks * this.config.parameters.pistolWeapon.damageBonus,
+        radius: 260 + pistolStacks * this.config.parameters.pistolWeapon.radiusBonus,
+        cooldownMs: Math.max(
+          90,
+          240 - reloadStacks * this.config.parameters.reload.cooldownReductionSeconds * 1000
+        ),
+        projectileSpeed: 760 + pistolStacks * this.config.parameters.pistolWeapon.projectileSpeedBonus * 18,
+        bonusCount: pistolStacks,
+      };
+    }
+
+    if (meleeStacks > 0) {
+      profiles.melee = {
+        id: "melee",
+        damage: baseMelee.damage + meleeStacks * this.config.parameters.meleeWeapon.damageBonus,
+        radius: baseMelee.radius + 20,
+        cooldownMs: Math.max(
+          220,
+          baseMelee.cooldownSeconds * 1000 -
+            reloadStacks * this.config.parameters.reload.cooldownReductionSeconds * 1000
+        ),
+        bonusCount: meleeStacks,
+      };
+    }
+
+    if (grenadeStacks > 0) {
+      profiles.grenade = {
+        id: "grenade",
+        damage: grenadeStacks * this.config.parameters.grenadeWeapon.damageBonus,
+        radius: 200 + grenadeStacks * this.config.parameters.grenadeWeapon.radiusBonus,
+        cooldownMs: Math.max(
+          500,
+          900 - reloadStacks * this.config.parameters.reload.cooldownReductionSeconds * 1000
+        ),
+        projectileSpeed: 420,
+        grenadesPerVolley: 1 + grenadeStacks * this.config.parameters.grenadeWeapon.grenadesPerVolleyBonus,
+        bonusCount: grenadeStacks,
+      };
+    }
+
+    return profiles;
+  }
+
   getDominantWeapon(parameterStacks) {
     const candidates = [
       ["meleeWeapon", "melee", "circle", 1],

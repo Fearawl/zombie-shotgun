@@ -46,6 +46,9 @@ export class GameScene extends Phaser.Scene {
     this.pickupSystem = new PickupSystem(gameConfig, this.lootSystem);
     this.progressionSystem = new ProgressionSystem(gameConfig);
     this.uiSystem = new UiSystem(this, gameConfig);
+    const initialHeroState = this.heroBuildSystem.resolveHeroProgression(this.hero.parameterStacks);
+    this.hero.stats = initialHeroState.stats;
+    this.hero.weaponProfiles = initialHeroState.weaponProfiles;
 
     this.eventBus.on("wave:created", (wave) => {
       this.session.setWaveState(wave);
@@ -59,6 +62,8 @@ export class GameScene extends Phaser.Scene {
     this.waveRemainingSeconds = 0;
     this.isGameplayPaused = false;
     this.lastHeroShotAt = -gameConfig.runtime.hero.shotgun.cooldownMs;
+    this.lastHeroPistolAt = -300;
+    this.lastHeroMeleeAt = -600;
     this.physics.world.setBounds(0, 0, gameConfig.runtime.world.width, gameConfig.runtime.world.height);
   }
 
@@ -129,11 +134,6 @@ export class GameScene extends Phaser.Scene {
   setupInput() {
     this.keys = this.input.keyboard.addKeys("W,A,S,D");
     this.input.keyboard.on("keydown-ESC", () => this.handleEscapePressed());
-    this.input.on("pointerdown", (pointer) => {
-      if (!this.isGameplayPaused && pointer.leftButtonDown()) {
-        this.combatSystem.fireHeroShotgun(this, pointer);
-      }
-    });
   }
 
   setupCollisions() {
@@ -151,8 +151,13 @@ export class GameScene extends Phaser.Scene {
     this.updateHeroHealthBar();
     this.updatePickups();
     this.updateUi();
+    this.updateHeroCombat();
     this.updateEnemyCombat();
     this.tickWaveTimer();
+  }
+
+  updateHeroCombat() {
+    this.combatSystem.updateHeroAttacks(this);
   }
 
   updateHeroMovement() {
@@ -445,12 +450,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   resolveHeroWeaponTexture() {
-    const scores = {
-      shotgun: 1 + (this.hero.parameterStacks.shotgunWeapon ?? 0),
-      pistol: this.hero.parameterStacks.pistolWeapon ?? 0,
-      grenade: this.hero.parameterStacks.grenadeWeapon ?? 0,
-    };
-    const best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "shotgun";
-    return this.resolveWeaponTexture(best);
+    return "shotgun-icon";
   }
 }

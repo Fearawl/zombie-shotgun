@@ -4,26 +4,7 @@ export class CombatSystem {
   }
 
   buildHeroShotgunProfile(hero) {
-    const runtimeShotgun = this.config.runtime.hero.shotgun;
-    const shotgunStacks = hero.parameterStacks.shotgunWeapon ?? 0;
-    const reloadStacks = hero.parameterStacks.reload ?? 0;
-
-    return {
-      pellets: runtimeShotgun.pellets,
-      damagePerPellet:
-        runtimeShotgun.damagePerPellet +
-        shotgunStacks * this.config.parameters.shotgunWeapon.damageBonus,
-      spreadRadians: runtimeShotgun.spreadRadians,
-      range: runtimeShotgun.range + shotgunStacks * this.config.parameters.shotgunWeapon.radiusBonus,
-      cooldownMs: Math.max(
-        80,
-        runtimeShotgun.cooldownMs -
-          reloadStacks * this.config.parameters.reload.cooldownReductionSeconds * 1000
-      ),
-      projectileSpeed:
-        runtimeShotgun.projectileSpeed +
-        shotgunStacks * this.config.parameters.shotgunWeapon.projectileSpeedBonus,
-    };
+    return hero.weaponProfiles.shotgun;
   }
 
   isTargetInsideShot(origin, target, angle, range, hitRadius) {
@@ -42,15 +23,32 @@ export class CombatSystem {
     return Phaser.Math.Distance.Between(nearestX, nearestY, target.x, target.y) <= hitRadius;
   }
 
+  updateHeroAttacks(scene) {
+    if (scene.isGameplayPaused || !scene.player?.active) {
+      return;
+    }
+
+    const pointer = scene.input.activePointer.positionToCamera(scene.cameras.main);
+    if (scene.input.activePointer.leftButtonDown()) {
+      this.fireHeroShotgun(scene, { worldX: pointer.x, worldY: pointer.y });
+      this.fireHeroPistol(scene, { worldX: pointer.x, worldY: pointer.y });
+    }
+
+    this.triggerHeroMelee(scene);
+  }
+
   fireHeroShotgun(scene, pointer) {
     const shotgun = this.buildHeroShotgunProfile(scene.hero);
+    if (!shotgun) {
+      return false;
+    }
     if (scene.time.now - scene.lastHeroShotAt < shotgun.cooldownMs) {
       return false;
     }
 
     scene.lastHeroShotAt = scene.time.now;
     const baseAngle = Phaser.Math.Angle.Between(scene.player.x, scene.player.y, pointer.worldX, pointer.worldY);
-    const duration = Math.round((shotgun.range / shotgun.projectileSpeed) * 1000);
+    const duration = Math.round((shotgun.radius / shotgun.projectileSpeed) * 1000);
 
     for (let i = 0; i < shotgun.pellets; i += 1) {
       const t = shotgun.pellets === 1 ? 0.5 : i / (shotgun.pellets - 1);
@@ -61,18 +59,84 @@ export class CombatSystem {
       scene.heroProjectiles.add(pellet);
       scene.tweens.add({
         targets: pellet,
-        x: scene.player.x + Math.cos(angle) * shotgun.range,
-        y: scene.player.y + Math.sin(angle) * shotgun.range,
+        x: scene.player.x + Math.cos(angle) * shotgun.radius,
+        y: scene.player.y + Math.sin(angle) * shotgun.radius,
         alpha: 0.15,
         duration,
         ease: "Linear",
         onComplete: () => pellet.destroy(),
       });
-      this.applyHeroPelletDamage(scene, angle, shotgun.range, shotgun.damagePerPellet);
+      this.applyHeroPelletDamage(scene, angle, shotgun.radius, shotgun.damagePerPellet);
     }
 
     this.showMuzzleFlash(scene, baseAngle);
     scene.cameras.main.shake(60, 0.0025);
+    return true;
+  }
+
+  fireHeroPistol(scene, pointer) {
+    const pistol = scene.hero.weaponProfiles.pistol;
+    if (!pistol) {
+      return false;
+    }
+    if (scene.time.now - scene.lastHeroPistolAt < pistol.cooldownMs) {
+      return false;
+    }
+
+    scene.lastHeroPistolAt = scene.time.now;
+    const angle = Phaser.Math.Angle.Between(scene.player.x, scene.player.y, pointer.worldX, pointer.worldY);
+    const projectile = scene.add
+      .image(scene.player.x + Math.cos(angle) * 18, scene.player.y + Math.sin(angle) * 18, "pistol-bullet")
+      .setDepth(6)
+      .setScale(1.25)
+      .setTint(0xfff3c3);
+    scene.heroProjectiles.add(projectile);
+    scene.tweens.add({
+      targets: projectile,
+      x: scene.player.x + Math.cos(angle) * pistol.radius,
+      y: scene.player.y + Math.sin(angle) * pistol.radius,
+      alpha: 0.1,
+      duration: Math.round((pistol.radius / pistol.projectileSpeed) * 1000),
+      ease: "Linear",
+      onComplete: () => projectile.destroy(),
+    });
+
+    this.applyHeroPistolDamage(scene, angle, pistol.radius, pistol.damage);
+    return true;
+  }
+
+  triggerHeroMelee(scene) {
+    const melee = scene.hero.weaponProfiles.melee;
+    if (!melee) {
+      return false;
+    }
+    if (scene.time.now - scene.lastHeroMeleeAt < melee.cooldownMs) {
+      return false;
+    }
+
+    let bestTarget = null;
+    let bestDistance = Number.MAX_SAFE_INTEGER;
+    scene.enemies.getChildren().forEach((enemy) => {
+      if (!enemy.active) {
+        return;
+      }
+      const distance = Phaser.Math.Distance.Between(scene.player.x, scene.player.y, enemy.x, enemy.y);
+      if (distance <= melee.radius && distance < bestDistance) {
+        bestTarget = enemy;
+        bestDistance = distance;
+      }
+    });
+
+    if (!bestTarget) {
+      return false;
+    }
+
+    scene.lastHeroMeleeAt = scene.time.now;
+    const died = bestTarget.takeDamage(Math.max(1, melee.damage - (bestTarget.armorValue ?? 0)));
+    if (died) {
+      scene.kills += 1;
+    }
+    this.showHeroMeleeSwing(scene, bestTarget);
     return true;
   }
 
@@ -91,6 +155,33 @@ export class CombatSystem {
         scene.kills += 1;
       }
     });
+  }
+
+  applyHeroPistolDamage(scene, angle, range, damage) {
+    let bestTarget = null;
+    let bestDistance = Number.MAX_SAFE_INTEGER;
+    scene.enemies.getChildren().forEach((enemy) => {
+      if (!enemy.active) {
+        return;
+      }
+      if (!this.isTargetInsideShot(scene.player, enemy, angle, range, 14)) {
+        return;
+      }
+      const distance = Phaser.Math.Distance.Between(scene.player.x, scene.player.y, enemy.x, enemy.y);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestTarget = enemy;
+      }
+    });
+
+    if (!bestTarget) {
+      return;
+    }
+
+    const died = bestTarget.takeDamage(Math.max(1, damage - (bestTarget.armorValue ?? 0)));
+    if (died) {
+      scene.kills += 1;
+    }
   }
 
   handleEnemyTouch(scene, player, enemy) {
@@ -194,8 +285,8 @@ export class CombatSystem {
       speed: 160 + (weapon.projectileSpeed ?? 0) * 8,
       range: weapon.radius,
       damage: weapon.damage,
-      texture: "pistol-bullet",
-      scale: 0.9,
+      texture: "enemy-bullet",
+      scale: 1.15,
       tint: enemy.weaponVfxTint,
     });
   }
@@ -334,6 +425,21 @@ export class CombatSystem {
     arc.lineStyle(3, enemy.weaponVfxTint, 0.95);
     arc.beginPath();
     arc.arc(enemy.x, enemy.y, 24, angle - 0.7, angle + 0.7, false);
+    arc.strokePath();
+    scene.tweens.add({
+      targets: arc,
+      alpha: 0,
+      duration: 120,
+      onComplete: () => arc.destroy(),
+    });
+  }
+
+  showHeroMeleeSwing(scene, target) {
+    const angle = Phaser.Math.Angle.Between(scene.player.x, scene.player.y, target.x, target.y);
+    const arc = scene.add.graphics().setDepth(8.6);
+    arc.lineStyle(4, 0xd9a55c, 0.95);
+    arc.beginPath();
+    arc.arc(scene.player.x, scene.player.y, 28, angle - 0.8, angle + 0.8, false);
     arc.strokePath();
     scene.tweens.add({
       targets: arc,
