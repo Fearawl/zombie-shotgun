@@ -190,7 +190,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   createUpgradeCard(x, y, index) {
-    const container = this.add.container(x, y);
+    const container = this.add.container(x, y).setScrollFactor(0).setDepth(52);
     const background = this.add.graphics();
     background.fillStyle(0x18303c, 1);
     background.lineStyle(3, 0x4a7388, 1);
@@ -225,17 +225,24 @@ export class GameScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const zone = this.add.zone(0, 0, 220, 172).setInteractive({ useHandCursor: true });
-    zone.on("pointerover", () => container.setScale(1.03));
-    zone.on("pointerout", () => container.setScale(1));
-    zone.on("pointerdown", () => container.setScale(0.98));
-    zone.on("pointerup", () => {
+    const hitZone = this.add
+      .zone(x, y, 220, 172)
+      .setScrollFactor(0)
+      .setDepth(53)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true });
+    hitZone.input.enabled = false;
+
+    hitZone.on("pointerover", () => container.setScale(1.03));
+    hitZone.on("pointerout", () => container.setScale(1));
+    hitZone.on("pointerdown", () => container.setScale(0.98));
+    hitZone.on("pointerup", () => {
       container.setScale(1.03);
       this.selectUpgradeCard(index);
     });
 
-    container.add([background, title, description, buttonHint, zone]);
-    return { container, title, description, buttonHint };
+    container.add([background, title, description, buttonHint]);
+    return { container, title, description, buttonHint, hitZone };
   }
 
   setupInput() {
@@ -509,6 +516,8 @@ export class GameScene extends Phaser.Scene {
       view.description.setText(card?.description ?? "");
       view.buttonHint.setText(card ? "Pick" : "");
       view.container.setVisible(Boolean(card));
+      view.hitZone.setVisible(Boolean(card));
+      view.hitZone.input.enabled = Boolean(card);
       view.container.setScale(1);
     });
     this.levelUpOverlay.setVisible(true);
@@ -528,6 +537,10 @@ export class GameScene extends Phaser.Scene {
     }
     this.player.healthPoints = Math.min(this.player.healthPoints, this.player.maxHealth);
     this.currentUpgradeCards = null;
+    this.levelCardViews.forEach((view) => {
+      view.hitZone.setVisible(false);
+      view.hitZone.input.enabled = false;
+    });
     this.levelUpOverlay.setVisible(false);
     this.setGameplayPaused(false, null);
   }

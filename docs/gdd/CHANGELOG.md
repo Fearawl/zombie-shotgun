@@ -32,3 +32,4 @@
 - Added active enemy weapon execution from generated `weaponProfiles`.
 - Enemies can now use melee, pistol, shotgun and grenade attacks in parallel on their own cooldowns.
 - Added enemy projectile travel, grenade burst resolution and full pause of tweens during modal gameplay pauses.
+- Reworked level-up card input to use dedicated overlay hit-zones above the modal container, fixing unreliable card clicks.
