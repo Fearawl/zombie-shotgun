@@ -128,8 +128,8 @@ export class UiSystem {
 
     const dim = this.scene.add.rectangle(0, 0, width, height, 0x051016, 0.84).setOrigin(0, 0);
     const panel = this.scene.add.graphics();
-    const panelWidth = 600;
-    const panelHeight = 430;
+    const panelWidth = 860;
+    const panelHeight = 470;
     const panelX = width / 2 - panelWidth / 2;
     const panelY = height / 2 - panelHeight / 2;
     panel.fillStyle(0x10212b, 0.98);
@@ -177,9 +177,19 @@ export class UiSystem {
 
     this.settingsContent = this.scene.add.container(0, 0).setScrollFactor(0).setDepth(86);
     this.settingsContent.setMask(this.settingsMask);
-    this.settingsRows = definitions.map((definition, index) =>
-      this.createSettingsRow(definition, this.settingsViewport.x + 10, this.settingsViewport.y + 8 + index * 78)
-    );
+    const columnGap = 28;
+    const rowHeight = 108;
+    const columnWidth = (this.settingsViewport.width - columnGap) / 2;
+    this.settingsRows = definitions.map((definition, index) => {
+      const columnIndex = index % 2;
+      const rowIndex = Math.floor(index / 2);
+      return this.createSettingsRow(
+        definition,
+        this.settingsViewport.x + 6 + columnIndex * (columnWidth + columnGap),
+        this.settingsViewport.y + 8 + rowIndex * rowHeight,
+        columnWidth
+      );
+    });
     this.settingsRows.forEach((row) => this.settingsContent.add(row.container));
     this.recalculateSettingsScrollBounds();
 
@@ -337,7 +347,7 @@ export class UiSystem {
     return { container, hitZone };
   }
 
-  createSettingsRow(definition, x, y) {
+  createSettingsRow(definition, x, y, columnWidth) {
     const container = this.scene.add.container(x, y).setScrollFactor(0).setDepth(86);
     const label = this.scene.add.text(0, 0, definition.label, {
       fontFamily: "Arial Black, sans-serif",
@@ -348,17 +358,17 @@ export class UiSystem {
       fontFamily: "Verdana, sans-serif",
       fontSize: "13px",
       color: "#c3d1d9",
-      wordWrap: { width: this.settingsViewport.width - 120 },
+      wordWrap: { width: columnWidth - 96 },
     });
     const valueText = this.scene.add
-      .text(this.settingsViewport.width - 86, 0, "", {
+      .text(columnWidth - 10, 0, "", {
         fontFamily: "Arial Black, sans-serif",
         fontSize: "16px",
         color: "#8fe4ff",
       })
       .setOrigin(1, 0);
-    const trackY = 54;
-    const trackWidth = this.settingsViewport.width - 28;
+    const trackY = 78;
+    const trackWidth = columnWidth - 18;
     const track = this.scene.add.graphics();
     const fill = this.scene.add.graphics();
     const handle = this.scene.add.circle(0, trackY, 9, 0xf3ead1, 1).setStrokeStyle(2, 0x4a7388, 1);
@@ -384,7 +394,7 @@ export class UiSystem {
       0,
       1
     );
-    const trackY = 54;
+    const trackY = 78;
     row.track.clear();
     row.track.fillStyle(0x223947, 1);
     row.track.fillRoundedRect(0, trackY - 4, row.trackWidth, 8, 4);
@@ -411,7 +421,7 @@ export class UiSystem {
   }
 
   recalculateSettingsScrollBounds() {
-    const totalHeight = Math.max(0, this.settingsRows.length * 78);
+    const totalHeight = Math.max(0, Math.ceil(this.settingsRows.length / 2) * 108);
     this.settingsScrollMax = Math.max(0, totalHeight - this.settingsViewport.height + 14);
     this.settingsScrollMin = 0;
     this.setSettingsScroll(this.settingsScrollY);

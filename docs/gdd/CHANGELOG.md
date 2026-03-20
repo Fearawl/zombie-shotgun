@@ -63,3 +63,5 @@
 - Set the hero shotgun default fire cooldown to `2s` and reload time to `2s`.
 - Compacted the HUD and added a pauseable settings window on `P` / top-right button with draggable live sliders, close button and scroll support.
 - Added matching half-arc melee VFX to enemies so their attacks read like the hero's attack language.
+- Rebuilt the settings window into a larger two-column layout with cleaner spacing.
+- Removed duplicate contact damage from enemy body overlap, preventing instant hero deaths when sprites stack.

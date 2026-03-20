@@ -293,14 +293,10 @@ export class CombatSystem {
     if (scene.isGameplayPaused || !enemy.active || !enemy.canMove) {
       return false;
     }
-    if (!enemy.canAttack(scene.time.now)) {
-      return false;
-    }
-
-    enemy.recordAttack(scene.time.now);
-    player.healthPoints = Math.max(0, player.healthPoints - this.config.runtime.enemy.attackDamage);
-    scene.cameras.main.shake(80, 0.003);
-    return player.healthPoints <= 0;
+    const angle = Phaser.Math.Angle.Between(player.x, player.y, enemy.x, enemy.y);
+    enemy.x += Math.cos(angle) * 3;
+    enemy.y += Math.sin(angle) * 3;
+    return false;
   }
 
   updateEnemyAttacks(scene) {
