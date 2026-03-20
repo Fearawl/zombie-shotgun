@@ -84,8 +84,12 @@ Only one pause source should own input at a time. This is why pause state should
 - Build the next phase as a clean replacement path rather than incremental patching over prototype combat code.
 
 ## Current Implementation Slice
-- `GameScene` now acts as a preproduction dashboard instead of the old prototype combat sandbox.
-- The following modules are already implemented as code and wired together:
-  `GameSession`, `EventBus`, `Hero`, `EnemyUnit`, `Pickup`, `EnemyFactory`, `WaveSystem`, `SpawnSystem`, `WeaponSystem`, `LootSystem`, `ProgressionSystem`, `PresentationSystem`.
-- The next phase is to replace the dashboard with the actual runtime layer:
-  hero runtime entity, enemy runtime entity, projectile runtime, wave timer, spawner execution, combat resolution and upgrade pause flow.
+- `GameScene` is no longer a dashboard. It now hosts the first playable runtime slice driven by the new systems.
+- The following modules are already implemented and actively used by the scene:
+  `GameSession`, `EventBus`, `Hero`, `EnemyUnit`, `Pickup`, `EnemyFactory`, `WaveSystem`, `SpawnSystem`, `WeaponSystem`, `LootSystem`, `ProgressionSystem`.
+- Runtime features already connected:
+  wave timer, wave title banner, regular enemy spawning, boss spawning, shotgun combat, enemy death drops, XP collection and level-up pause cards.
+- Transitional note:
+  the scene still temporarily reuses the legacy `Zombie` Phaser actor for movement, contact attacks and death hooks while the new dedicated runtime entity layer is being built.
+- The next phase is to split remaining in-scene runtime logic into dedicated systems:
+  `CombatSystem`, runtime pickup actor layer, enemy weapon execution, hero upgrade application service and richer parameter-driven visuals.

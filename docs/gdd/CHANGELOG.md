@@ -16,3 +16,8 @@
 - Confirmed no duplicate upgrade cards inside one level-up offer.
 - Added the first implementation slice of the new architecture: core session, event bus, hero/enemy/pickup data models, and wave/spawn/weapon/loot/progression/presentation systems.
 - Replaced the old in-progress combat scene in `dev` with a preproduction architecture dashboard backed by the new systems.
+- Replaced the dashboard with the first playable vertical slice of the new architecture.
+- Added runtime wave flow, off-screen enemy spawning, near-hero boss summoning and shotgun combat on top of the new systems.
+- Added enemy shape textures from parameter dominance plus medkit and XP star pickup textures in `BootScene`.
+- Added pickup lifetime handling, blinking cleanup, boss XP burst scattering and hero XP collection in the new `GameScene`.
+- Added level-up pause overlay with 3 unique upgrade cards wired into the shared parameter pool.

@@ -1,5 +1,36 @@
 export const gameConfig = {
-  version: "preproduction-001",
+  version: "preproduction-002",
+  runtime: {
+    world: {
+      width: 2200,
+      height: 1600,
+    },
+    hero: {
+      spawnX: 360,
+      spawnY: 300,
+      bodyRadius: 18,
+      shotgun: {
+        pellets: 8,
+        damagePerPellet: 2,
+        spreadRadians: 0.34,
+        range: 290,
+        cooldownMs: 280,
+        projectileSpeed: 900,
+      },
+      contactDamageGraceMs: 450,
+    },
+    enemy: {
+      offscreenSpawnPadding: 100,
+      bossSpawnMinDistance: 140,
+      bossSpawnMaxDistance: 220,
+      attackDamage: 1,
+      attackCooldownMs: 2000,
+      defaultAggroRadius: 99999,
+    },
+    ui: {
+      waveBannerDurationMs: 1800,
+    },
+  },
   progression: {
     waveDurationSeconds: 30,
     spawnAccelerationPerWave: 0.1,
