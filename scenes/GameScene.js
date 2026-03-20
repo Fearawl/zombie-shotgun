@@ -20,6 +20,7 @@ const DEFAULT_AGGRO_RADIUS = Math.round(960 * 0.3);
 const PLAYER_HIT_RADIUS = 34;
 const ZOMBIE_ATTACK_DAMAGE = 5;
 const ZOMBIE_ATTACK_COOLDOWN_MS = 2000;
+const ZOMBIE_SPEED_BOOST_PER_BOSS = 1.2;
 const RANGE_PRESETS = [
   { label: "Short", screenRatio: 0.22, color: 0xa0d8ff },
   { label: "Medium", screenRatio: 0.3, color: 0xf3d57d },
@@ -34,6 +35,9 @@ export class GameScene extends Phaser.Scene {
     this.isRoundFinished = false;
     this.rangePresetIndex = 1;
     this.bossesSpawned = 0;
+    this.isPaused = false;
+    this.isDevConsoleOpen = false;
+    this.isPauseMenuOpen = false;
   }
 
   create() {
@@ -48,6 +52,7 @@ export class GameScene extends Phaser.Scene {
       aggroRadius: DEFAULT_AGGRO_RADIUS,
       bossSpawnIntervalMs: DEFAULT_BOSS_SPAWN_INTERVAL_MS,
     };
+    this.zombieSpeedMultiplier = 1;
 
     this.physics.world.setBounds(0, 0, 2200, 1600);
     this.cameras.main.setBackgroundColor("#17261b");
@@ -58,7 +63,9 @@ export class GameScene extends Phaser.Scene {
     this.createPickups();
     this.createZombies();
     this.createUi();
-    this.createSettingsPanel();
+    this.createPauseButton();
+    this.createDevConsole();
+    this.createPauseMenu();
     this.setupCamera();
     this.setupInput();
     this.setupCollisions();
@@ -180,13 +187,33 @@ export class GameScene extends Phaser.Scene {
     this.updateUi();
   }
 
-  createSettingsPanel() {
+  createPauseButton() {
+    const x = 18;
+    const y = this.scale.height - 64;
+    const button = this.add.container(x, y).setScrollFactor(0).setDepth(21);
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0b1720, 0.92);
+    bg.lineStyle(2, 0x38617a, 1);
+    bg.fillRoundedRect(0, 0, 148, 46, 14);
+    bg.strokeRoundedRect(0, 0, 148, 46, 14);
+    const text = this.add.text(16, 11, "Dev Console (P)", {
+      fontFamily: "Verdana, sans-serif",
+      fontSize: "16px",
+      color: "#f3e7bf",
+    });
+    const hit = this.add.zone(0, 0, 148, 46).setOrigin(0).setInteractive({ useHandCursor: true });
+    hit.on("pointerdown", () => this.toggleDevConsole());
+    button.add([bg, text, hit]);
+    this.devConsoleButton = button;
+  }
+
+  createDevConsole() {
     const panelWidth = 340;
-    const panelHeight = 180;
+    const panelHeight = 220;
     const x = 18;
     const y = this.scale.height - panelHeight - 18;
 
-    this.settingsUi = this.add.container(x, y).setScrollFactor(0).setDepth(20);
+    this.settingsUi = this.add.container(x, y).setScrollFactor(0).setDepth(30).setVisible(false);
 
     const panel = this.add.graphics();
     panel.fillStyle(0x081018, 0.88);
@@ -195,18 +222,25 @@ export class GameScene extends Phaser.Scene {
     panel.strokeRoundedRect(0, 0, panelWidth, panelHeight, 16);
     this.settingsUi.add(panel);
 
-    const title = this.add.text(18, 12, "Game Settings", {
+    const title = this.add.text(18, 12, "Developer Console", {
       fontFamily: "Arial Black, sans-serif",
       fontSize: "18px",
       color: "#f0ead2",
     });
     this.settingsUi.add(title);
 
+    const hint = this.add.text(18, 34, "P or click button to open/close", {
+      fontFamily: "Verdana, sans-serif",
+      fontSize: "13px",
+      color: "#92afc2",
+    });
+    this.settingsUi.add(hint);
+
     this.settingsSliders = [
       this.createSliderControl({
         parent: this.settingsUi,
         x: 18,
-        y: 48,
+        y: 66,
         width: 286,
         label: "Zombie Spawn",
         min: 0.5,
@@ -219,7 +253,7 @@ export class GameScene extends Phaser.Scene {
       this.createSliderControl({
         parent: this.settingsUi,
         x: 18,
-        y: 95,
+        y: 118,
         width: 286,
         label: "Aggro Radius",
         min: 120,
@@ -232,7 +266,7 @@ export class GameScene extends Phaser.Scene {
       this.createSliderControl({
         parent: this.settingsUi,
         x: 18,
-        y: 142,
+        y: 170,
         width: 286,
         label: "Boss Timer",
         min: 10,
@@ -243,6 +277,63 @@ export class GameScene extends Phaser.Scene {
         onChange: (value) => this.updateBossSpawnInterval(value * 1000),
       }),
     ];
+  }
+
+  createPauseMenu() {
+    const { width, height } = this.scale;
+    this.pauseOverlay = this.add.container(0, 0).setScrollFactor(0).setDepth(40).setVisible(false);
+
+    const dim = this.add.graphics();
+    dim.fillStyle(0x000000, 0.55);
+    dim.fillRect(0, 0, width, height);
+
+    const panel = this.add.graphics();
+    panel.fillStyle(0x081018, 0.94);
+    panel.lineStyle(2, 0x44697d, 1);
+    panel.fillRoundedRect(width / 2 - 170, height / 2 - 130, 340, 260, 18);
+    panel.strokeRoundedRect(width / 2 - 170, height / 2 - 130, 340, 260, 18);
+
+    const title = this.add.text(width / 2, height / 2 - 82, "Paused", {
+      fontFamily: "Arial Black, sans-serif",
+      fontSize: "34px",
+      color: "#f8efd7",
+    }).setOrigin(0.5);
+
+    const continueButton = this.createOverlayButton(width / 2, height / 2 - 12, 220, 52, "CONTINUE", () => {
+      this.closePauseMenu();
+    });
+    const restartButton = this.createOverlayButton(width / 2, height / 2 + 52, 220, 52, "RESTART", () => {
+      this.scene.start("GameScene");
+    });
+    const exitButton = this.createOverlayButton(width / 2, height / 2 + 116, 220, 52, "EXIT", () => {
+      this.scene.start("StartScene");
+    });
+
+    this.pauseOverlay.add([dim, panel, title, continueButton, restartButton, exitButton]);
+  }
+
+  createOverlayButton(x, y, width, height, label, onClick) {
+    const container = this.add.container(x, y);
+    const bg = this.add.graphics();
+    bg.fillStyle(0xd8612f, 1);
+    bg.lineStyle(3, 0x4f1a08, 1);
+    bg.fillRoundedRect(-width / 2, -height / 2, width, height, 14);
+    bg.strokeRoundedRect(-width / 2, -height / 2, width, height, 14);
+    const text = this.add.text(0, 0, label, {
+      fontFamily: "Arial Black, sans-serif",
+      fontSize: "22px",
+      color: "#fff5dd",
+    }).setOrigin(0.5);
+    const hit = this.add.zone(0, 0, width, height).setInteractive({ useHandCursor: true });
+    hit.on("pointerover", () => container.setScale(1.03));
+    hit.on("pointerout", () => container.setScale(1));
+    hit.on("pointerdown", () => container.setScale(0.98));
+    hit.on("pointerup", () => {
+      container.setScale(1.03);
+      onClick();
+    });
+    container.add([bg, text, hit]);
+    return container;
   }
 
   createSliderControl({ parent, x, y, width, label, min, max, step, initial, formatValue, onChange }) {
@@ -326,12 +417,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   setupInput() {
-    this.keys = this.input.keyboard.addKeys("W,A,S,D,R");
+    this.keys = this.input.keyboard.addKeys("W,A,S,D,R,P,ESC");
     if (this.input.mouse) {
       this.input.mouse.disableContextMenu();
     }
     this.game.canvas.oncontextmenu = (event) => event.preventDefault();
     this.input.on("pointerdown", (pointer) => {
+      if (this.isPaused) {
+        return;
+      }
       if (pointer.leftButtonDown()) {
         this.tryShoot(pointer);
         return;
@@ -342,6 +436,8 @@ export class GameScene extends Phaser.Scene {
       }
     });
     this.input.keyboard.on("keydown-R", () => this.reloadWeapon());
+    this.input.keyboard.on("keydown-P", () => this.toggleDevConsole());
+    this.input.keyboard.on("keydown-ESC", () => this.togglePauseMenu());
   }
 
   setupCollisions() {
@@ -373,7 +469,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   update() {
-    if (this.isRoundFinished) {
+    if (this.isRoundFinished || this.isPaused) {
       return;
     }
 
@@ -457,7 +553,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   tryShoot(pointer) {
-    if (this.isRoundFinished) {
+    if (this.isRoundFinished || this.isPaused) {
       return;
     }
 
@@ -507,7 +603,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   reloadWeapon() {
-    if (this.isRoundFinished) {
+    if (this.isRoundFinished || this.isPaused) {
       return;
     }
 
@@ -618,6 +714,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.isRoundFinished = true;
+    this.clearPauseState();
     this.player.setVelocity(0, 0);
     if (this.spawnTimer) {
       this.spawnTimer.remove(false);
@@ -754,6 +851,7 @@ export class GameScene extends Phaser.Scene {
       tint: options.tint,
       aggroRadius: this.settings.aggroRadius,
       attackCooldownMs: ZOMBIE_ATTACK_COOLDOWN_MS,
+      speedMultiplier: this.zombieSpeedMultiplier,
     });
     this.zombies.add(zombie);
 
@@ -779,6 +877,7 @@ export class GameScene extends Phaser.Scene {
     );
 
     if (isBoss) {
+      this.boostZombieSpeed();
       this.spawnZombie(x, y, {
         emerge: true,
         isBoss: true,
@@ -814,6 +913,13 @@ export class GameScene extends Phaser.Scene {
     graphics.fillEllipse(560, 460, 520, 200);
     graphics.fillEllipse(1480, 1080, 620, 220);
     graphics.fillEllipse(1780, 420, 420, 170);
+  }
+
+  boostZombieSpeed() {
+    this.zombieSpeedMultiplier *= ZOMBIE_SPEED_BOOST_PER_BOSS;
+    this.zombies.getChildren().forEach((zombie) => {
+      zombie.setSpeedMultiplier(this.zombieSpeedMultiplier);
+    });
   }
 
   updateZombieSpawnInterval(delayMs) {
@@ -852,5 +958,64 @@ export class GameScene extends Phaser.Scene {
         },
       });
     }
+  }
+
+  toggleDevConsole() {
+    if (this.isRoundFinished) {
+      return;
+    }
+
+    if (this.isPauseMenuOpen) {
+      return;
+    }
+
+    this.isDevConsoleOpen = !this.isDevConsoleOpen;
+    this.settingsUi.setVisible(this.isDevConsoleOpen);
+    this.syncPauseState();
+  }
+
+  togglePauseMenu() {
+    if (this.isRoundFinished) {
+      return;
+    }
+
+    if (this.isDevConsoleOpen) {
+      this.isDevConsoleOpen = false;
+      this.settingsUi.setVisible(false);
+    }
+
+    this.isPauseMenuOpen = !this.isPauseMenuOpen;
+    this.pauseOverlay.setVisible(this.isPauseMenuOpen);
+    this.syncPauseState();
+  }
+
+  closePauseMenu() {
+    this.isPauseMenuOpen = false;
+    this.pauseOverlay.setVisible(false);
+    this.syncPauseState();
+  }
+
+  syncPauseState() {
+    const shouldPause = this.isDevConsoleOpen || this.isPauseMenuOpen;
+    this.isPaused = shouldPause;
+    if (shouldPause) {
+      this.physics.world.pause();
+      this.player.setVelocity(0, 0);
+    } else {
+      this.physics.world.resume();
+    }
+  }
+
+  clearPauseState() {
+    this.isPaused = false;
+    this.isDevConsoleOpen = false;
+    this.isPauseMenuOpen = false;
+    if (this.settingsUi) {
+      this.settingsUi.setVisible(false);
+    }
+    if (this.pauseOverlay) {
+      this.pauseOverlay.setVisible(false);
+    }
+    this.physics.world.resume();
   }
 }

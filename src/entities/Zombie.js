@@ -8,7 +8,9 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     this.isBoss = options.isBoss ?? false;
     this.maxHealth = options.maxHealth ?? 10;
     this.healthPoints = this.maxHealth;
-    this.moveSpeed = options.moveSpeed ?? Phaser.Math.Between(34, 52);
+    this.baseMoveSpeed = options.moveSpeed ?? Phaser.Math.Between(34, 52);
+    this.speedMultiplier = options.speedMultiplier ?? 1;
+    this.moveSpeed = this.baseMoveSpeed * this.speedMultiplier;
     this.aggroRadius = options.aggroRadius ?? 96;
     this.attackCooldownMs = options.attackCooldownMs ?? 2000;
     this.lastAttackAt = -this.attackCooldownMs;
@@ -132,6 +134,11 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
 
   recordAttack(timeNow) {
     this.lastAttackAt = timeNow;
+  }
+
+  setSpeedMultiplier(multiplier) {
+    this.speedMultiplier = multiplier;
+    this.moveSpeed = this.baseMoveSpeed * this.speedMultiplier;
   }
 
   getDropPosition() {
