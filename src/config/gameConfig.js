@@ -4,7 +4,7 @@ const sharedBaseUnitStats = {
 };
 
 export const gameConfig = {
-  version: "preproduction-020",
+  version: "preproduction-021",
   runtime: {
     world: {
       width: 2200,
@@ -84,7 +84,7 @@ export const gameConfig = {
       },
     },
     balance: {
-      damageGrowthMultiplier: 0.5,
+      damageGrowthMultiplier: 0.1,
     },
     spawn: {
       preferOffscreenSpawn: true,

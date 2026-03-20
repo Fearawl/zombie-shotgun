@@ -50,6 +50,7 @@ export class WeaponSystem {
       profile.pellets = parameter.pellets ?? profile.pellets ?? 1;
       profile.vfx = parameter.vfx ?? profile.vfx;
       profile.bonusCount += count;
+      profile.damage = Math.max(1, Math.round(profile.damage));
       profiles[weaponId] = profile;
     }
 

@@ -15,7 +15,7 @@ export class ProgressionSystem {
 
   getXpThreshold(level) {
     const { firstLevelCost, levelCostMultiplier } = this.config.progression.xp;
-    return firstLevelCost * Math.pow(levelCostMultiplier, Math.max(0, level - 1));
+    return Math.round(firstLevelCost * Math.pow(levelCostMultiplier, Math.max(0, level - 1)));
   }
 
   createUpgradeOffer() {

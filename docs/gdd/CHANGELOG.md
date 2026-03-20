@@ -58,3 +58,5 @@
 - Fixed hero melee auto-attack cadence so the axe swing now triggers on cooldown even with no enemy in range, aiming toward the cursor when it whiffs.
 - Removed the hero's default melee weapon, restored the default shotgun, and added manual `R` reload with an 8-shell magazine and infinite reserve.
 - Added HUD ammo state for the hero shotgun and matched enemy pistol/shotgun shots with muzzle-flash VFX similar to the hero.
+- Reduced enemy weapon damage by another 5x with integer rounding and a minimum final damage of `1`.
+- Rounded gained XP and required XP thresholds to integers across session progression.
