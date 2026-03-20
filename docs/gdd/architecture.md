@@ -26,7 +26,7 @@
 - `src/systems/SpawnSystem.js`
   Spawns off-screen units, underground summons and boss spawn choreography.
 - `src/systems/EnemyFactory.js`
-  Builds enemy specs from base stats + wave multiplier + random parameters + boss multiplier.
+  Builds enemy specs from base stats + `waveNumber` rolled bonus parameters. Also builds boss specs from a separate boss roll + boss multiplier.
 - `src/systems/CombatSystem.js`
   Hit resolution, outgoing/incoming damage, armor, cooldowns, projectile ownership and friendly-fire rules.
 - `src/systems/WeaponSystem.js`
@@ -52,12 +52,12 @@
 
 ## Enemy Parameter Assembly
 - Start from base parameters.
-- Apply wave multiplier.
 - Roll `waveNumber` additional parameters.
 - Parameter duplicates stack numerically.
 - Parameter duplicates also escalate adjective wording from tier 1 to tier 2 to tier `X`.
 - Determine dominant weapon parameter for shape override.
-- For bosses apply extra x5 multiplier after the wave multiplier and parameter stacking.
+- Rebuild the enemy package from scratch for each new wave.
+- For bosses, make a separate random roll and apply extra x5 multiplier after boss parameter assembly.
 
 ## Wave Naming Pipeline
 - Each parameter contributes one adjective fragment.
@@ -78,3 +78,4 @@ Only one pause source should own input at a time. This is why pause state should
 - Keep the current prototype scenes only as shell containers.
 - Move new logic into systems first, then gradually replace in-scene logic.
 - Avoid hardcoding per-weapon or per-enemy logic directly in `GameScene`.
+- Build the next phase as a clean replacement path rather than incremental patching over prototype combat code.

@@ -5,6 +5,7 @@ export const gameConfig = {
     spawnAccelerationPerWave: 0.1,
     bossMultiplier: 5,
     randomParametersPerWaveFormula: "wave_number",
+    rebuildEnemyParametersEachWave: true,
     xp: {
       firstLevelCost: 30,
       levelCostMultiplier: 2,
@@ -20,6 +21,7 @@ export const gameConfig = {
     levelUp: {
       cardsPerLevel: 3,
       pauseOnLevelUp: true,
+      parameterPoolSource: "shared_with_enemies",
     },
   },
   enemy: {
@@ -53,7 +55,13 @@ export const gameConfig = {
       xpStarChance: 0.1,
       bossStarsPerWaveRule: "wave_number",
       bossStarScatterRadius: 48,
+      lifetimeSeconds: 20,
+      blinkStartSecondsRemaining: 5,
     },
+  },
+  boss: {
+    useSeparateRandomRoll: true,
+    multiplier: 5,
   },
   parameters: {
     vitality: {

@@ -22,8 +22,10 @@ Preproduction. The current playable prototype exists only as a temporary sandbox
 - Wave duration: 30 seconds.
 - Each new wave increases enemy spawn rate by 10%.
 - Each wave ends with a boss.
-- Boss parameters use an extra x5 multiplier.
-- The wave number is a multiplier for unit parameters and also determines how many random parameters are rolled.
+- Wave number determines how many random bonus parameters are rolled for regular enemies.
+- Enemy generation is recreated from scratch each wave. Enemies do not inherit bonuses from previous waves.
+- Bosses do not reuse the exact wave roll. Each boss gets its own separate random parameter set.
+- Boss parameters use an extra x5 multiplier on top of the boss's rolled values.
 
 ## Unit Base Presentation
 - Base color: green.
@@ -60,6 +62,15 @@ Preproduction. The current playable prototype exists only as a temporary sandbox
 - On level-up the game pauses.
 - Show 3 cards with parameter names and short descriptions.
 - The player picks 1 card, which upgrades the hero.
+- For now, hero upgrades use the same parameter pool as enemy generation.
+
+## Confirmed Preproduction Decisions
+- Wave 1 = base enemy package + 1 rolled bonus parameter.
+- Wave 10 = base enemy package + 10 rolled bonus parameters.
+- Bosses are generated separately from normal wave enemies.
+- Pickup lifetime is limited to 20 seconds.
+- Pickups blink during the last 5 seconds before disappearing.
+- The current prototype can be treated as a reference only. The next implementation phase is effectively a new project built on the approved architecture.
 
 ## Current Target Deliverables
 - Stable architecture for waves, parameter generation, combat and upgrades.
