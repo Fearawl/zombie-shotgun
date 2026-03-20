@@ -3,14 +3,15 @@ export class PresentationSystem {
     this.config = config;
   }
 
-  buildEnemyVisuals(parameterStacks, shape, isBoss) {
+  buildEnemyVisuals(parameterStacks, dominantWeapon, isBoss) {
     const baseVisual = this.config.enemy.baseVisual;
     const vitalityStacks = parameterStacks.vitality ?? 0;
     const armorStacks = parameterStacks.armor ?? 0;
     const reloadStacks = parameterStacks.reload ?? 0;
 
     return {
-      shape,
+      shape: dominantWeapon.shape,
+      weaponId: dominantWeapon.weaponId,
       bodyTint: isBoss
         ? 0xc84a42
         : this.shiftToward(this.hexToRgb(baseVisual.color), { r: 142, g: 109, b: 78 }, vitalityStacks * 0.17),
@@ -36,6 +37,10 @@ export class PresentationSystem {
 
   formatWaveCounter(waveNumber, secondsRemaining) {
     return `Wave ${waveNumber} | ${Math.max(0, Math.ceil(secondsRemaining))}s`;
+  }
+
+  formatWaveTitle(waveTitle) {
+    return waveTitle;
   }
 
   hexToRgb(hexColor) {

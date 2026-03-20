@@ -57,17 +57,17 @@ export class WeaponSystem {
 
   getDominantWeapon(parameterStacks) {
     const candidates = [
-      ["meleeWeapon", "circle", 1],
-      ["pistolWeapon", "oval", 0],
-      ["shotgunWeapon", "triangle", 0],
-      ["grenadeWeapon", "square", 0],
+      ["meleeWeapon", "melee", "circle", 1],
+      ["pistolWeapon", "pistol", "oval", 0],
+      ["shotgunWeapon", "shotgun", "triangle", 0],
+      ["grenadeWeapon", "grenade", "square", 0],
     ];
 
     let best = candidates[0];
     for (const candidate of candidates) {
-      const [parameterKey, shape, baseCount] = candidate;
+      const [parameterKey, , , baseCount] = candidate;
       const count = (parameterStacks[parameterKey] ?? 0) + baseCount;
-      const bestCount = (parameterStacks[best[0]] ?? 0) + best[2];
+      const bestCount = (parameterStacks[best[0]] ?? 0) + best[3];
       if (count > bestCount) {
         best = candidate;
       }
@@ -75,7 +75,8 @@ export class WeaponSystem {
 
     return {
       parameterKey: best[0],
-      shape: best[1],
+      weaponId: best[1],
+      shape: best[2],
     };
   }
 }

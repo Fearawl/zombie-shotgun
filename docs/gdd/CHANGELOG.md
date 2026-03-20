@@ -37,3 +37,6 @@
 - Connected `PresentationSystem` to runtime enemy visuals and HUD formatting.
 - Enemy vitality now browns body tint, armor shifts outline toward cyan, and reload lightens weapon VFX color.
 - Enemy melee/projectile/grenade effects now inherit the generated weapon VFX tint for better wave readability.
+- Added pause menu on `Esc` with continue, restart and exit actions.
+- Kept the full wave title permanently visible on HUD alongside the wave state.
+- Added weapon sprites to units: the hero now carries a shotgun sprite by default, and enemies display the sprite of their dominant weapon.

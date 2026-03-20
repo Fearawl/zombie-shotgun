@@ -1,5 +1,5 @@
 export const gameConfig = {
-  version: "preproduction-009",
+  version: "preproduction-010",
   runtime: {
     world: {
       width: 2200,

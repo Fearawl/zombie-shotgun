@@ -91,7 +91,7 @@ export class EnemyFactory {
 
   buildVisuals(parameterStacks, isBoss) {
     const dominant = this.weaponSystem.getDominantWeapon(parameterStacks);
-    return this.presentationSystem.buildEnemyVisuals(parameterStacks, dominant.shape, isBoss);
+    return this.presentationSystem.buildEnemyVisuals(parameterStacks, dominant, isBoss);
   }
 
   buildTitleParts(parameterStacks) {

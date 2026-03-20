@@ -19,6 +19,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
     this.baseTint = options.tint ?? null;
     this.outlineTint = options.outlineTint ?? 0x6fb26d;
     this.weaponVfxTint = options.weaponVfxTint ?? 0xf1cf58;
+    this.weaponTexture = options.weaponTexture ?? null;
     this.canMove = true;
     this.baseY = y;
     this.onDeath = options.onDeath ?? null;
@@ -51,6 +52,9 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
       .ellipse(this.x, this.y, this.isBoss ? 44 : 34, this.isBoss ? 44 : 34)
       .setStrokeStyle(this.isBoss ? 4 : 3, this.outlineTint, 0.95)
       .setDepth(3.5);
+    this.weaponSprite = this.weaponTexture
+      ? scene.add.image(this.x, this.y, this.weaponTexture).setDepth(4.6).setScale(this.isBoss ? 1.2 : 1)
+      : null;
     this.healthBar = scene.add.graphics().setDepth(6);
     this.healthText = scene.add
       .text(this.x, this.y, "", {
@@ -98,7 +102,22 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
   updatePresentation() {
     this.shadow.setPosition(this.x + 6, this.y + (this.isBoss ? 24 : 18));
     this.outlineRing.setPosition(this.x, this.y);
+    this.updateWeaponPresentation();
     this.drawHealthBar();
+  }
+
+  updateWeaponPresentation() {
+    if (!this.weaponSprite) {
+      return;
+    }
+
+    const hero = this.scene.player;
+    const angle = hero
+      ? Phaser.Math.Angle.Between(this.x, this.y, hero.x, hero.y)
+      : this.walkDirection.angle();
+    const distance = this.isBoss ? 26 : 20;
+    this.weaponSprite.setPosition(this.x + Math.cos(angle) * distance, this.y + Math.sin(angle) * distance * 0.65);
+    this.weaponSprite.setRotation(angle);
   }
 
   pickNewDirection(time) {
@@ -224,6 +243,10 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
     if (this.outlineRing) {
       this.outlineRing.destroy();
       this.outlineRing = null;
+    }
+    if (this.weaponSprite) {
+      this.weaponSprite.destroy();
+      this.weaponSprite = null;
     }
     if (this.healthBar) {
       this.healthBar.destroy();

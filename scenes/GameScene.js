@@ -98,7 +98,7 @@ export class GameScene extends Phaser.Scene {
     this.player.maxHealth = gameConfig.hero.base.health;
 
     this.playerShadow = this.add.ellipse(this.player.x + 8, this.player.y + 24, 48, 18, 0x000000, 0.24);
-    this.playerGun = this.add.graphics();
+    this.playerWeaponSprite = this.add.image(this.player.x, this.player.y, "shotgun-icon").setDepth(8.5);
     this.playerHealthBar = this.add.graphics().setDepth(8);
     this.playerHealthText = this.add
       .text(this.player.x, this.player.y, "", {
@@ -152,7 +152,7 @@ export class GameScene extends Phaser.Scene {
         wordWrap: { width: 820 },
       })
       .setOrigin(0.5, 0)
-      .setAlpha(0);
+      .setAlpha(1);
 
     this.topUi.add([leftPanel, this.heroUiText, this.waveCounterText, this.waveBannerText]);
 
@@ -189,6 +189,31 @@ export class GameScene extends Phaser.Scene {
       this.levelCardViews.push(card);
       this.levelUpOverlay.add(card.container);
     }
+
+    this.pauseOverlay = this.add.container(0, 0).setScrollFactor(0).setDepth(70).setVisible(false);
+    const pauseDim = this.add.rectangle(0, 0, width, height, 0x040b10, 0.82).setOrigin(0, 0);
+    const pausePanel = this.add.graphics();
+    pausePanel.fillStyle(0x10212b, 0.98);
+    pausePanel.lineStyle(3, 0x466c81, 1);
+    pausePanel.fillRoundedRect(width / 2 - 250, height / 2 - 140, 500, 280, 22);
+    pausePanel.strokeRoundedRect(width / 2 - 250, height / 2 - 140, 500, 280, 22);
+    const pauseTitle = this.add
+      .text(width / 2, height / 2 - 92, "Paused", {
+        fontFamily: "Arial Black, sans-serif",
+        fontSize: "34px",
+        color: "#f7eed0",
+        stroke: "#162028",
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5);
+    this.pauseOverlay.add([pauseDim, pausePanel, pauseTitle]);
+
+    this.pauseButtons = [
+      this.createPauseButton(width / 2, height / 2 - 18, 0, "Continue", () => this.closePauseMenu()),
+      this.createPauseButton(width / 2, height / 2 + 36, 1, "Restart", () => this.scene.start("GameScene")),
+      this.createPauseButton(width / 2, height / 2 + 90, 2, "Exit", () => this.scene.start("StartScene")),
+    ];
+    this.pauseButtons.forEach((button) => this.pauseOverlay.add(button.container));
   }
 
   createUpgradeCard(x, y, index) {
@@ -249,11 +274,44 @@ export class GameScene extends Phaser.Scene {
 
   setupInput() {
     this.keys = this.input.keyboard.addKeys("W,A,S,D");
+    this.input.keyboard.on("keydown-ESC", () => this.handleEscapePressed());
     this.input.on("pointerdown", (pointer) => {
       if (!this.isGameplayPaused && pointer.leftButtonDown()) {
         this.combatSystem.fireHeroShotgun(this, pointer);
       }
     });
+  }
+
+  createPauseButton(x, y, index, label, onClick) {
+    const container = this.add.container(x, y).setScrollFactor(0).setDepth(72);
+    const background = this.add.graphics();
+    background.fillStyle(index === 2 ? 0x5b2e2e : 0x18303c, 1);
+    background.lineStyle(3, 0x4a7388, 1);
+    background.fillRoundedRect(-90, -22, 180, 44, 14);
+    background.strokeRoundedRect(-90, -22, 180, 44, 14);
+    const text = this.add
+      .text(0, 0, label, {
+        fontFamily: "Arial Black, sans-serif",
+        fontSize: "20px",
+        color: "#f4ebd0",
+      })
+      .setOrigin(0.5);
+    const hitZone = this.add
+      .zone(x, y, 180, 44)
+      .setScrollFactor(0)
+      .setDepth(73)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true });
+    hitZone.input.enabled = false;
+    hitZone.on("pointerover", () => container.setScale(1.03));
+    hitZone.on("pointerout", () => container.setScale(1));
+    hitZone.on("pointerdown", () => container.setScale(0.98));
+    hitZone.on("pointerup", () => {
+      container.setScale(1.03);
+      onClick();
+    });
+    container.add([background, text]);
+    return { container, hitZone };
   }
 
   setupCollisions() {
@@ -294,24 +352,13 @@ export class GameScene extends Phaser.Scene {
     this.playerShadow.setPosition(this.player.x + 8, this.player.y + 24);
     const pointer = this.input.activePointer.positionToCamera(this.cameras.main);
     const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, pointer.x, pointer.y);
-    const barrelLength = 34;
-    const gripLength = 14;
-    const barrelX = this.player.x + Math.cos(angle) * barrelLength;
-    const barrelY = this.player.y + Math.sin(angle) * barrelLength;
-    const buttX = this.player.x - Math.cos(angle) * gripLength;
-    const buttY = this.player.y - Math.sin(angle) * gripLength;
-    const sideAngle = angle + Math.PI / 2;
-
-    this.playerGun.clear();
-    this.playerGun.lineStyle(8, 0x44352d, 1);
-    this.playerGun.lineBetween(buttX, buttY, barrelX, barrelY);
-    this.playerGun.lineStyle(4, 0x946a3a, 1);
-    this.playerGun.lineBetween(
-      this.player.x + Math.cos(sideAngle) * 4,
-      this.player.y + Math.sin(sideAngle) * 4,
-      barrelX + Math.cos(sideAngle) * 2,
-      barrelY + Math.sin(sideAngle) * 2
+    const offset = 22;
+    this.playerWeaponSprite.setPosition(
+      this.player.x + Math.cos(angle) * offset,
+      this.player.y + Math.sin(angle) * offset * 0.7
     );
+    this.playerWeaponSprite.setRotation(angle);
+    this.playerWeaponSprite.setTexture(this.resolveHeroWeaponTexture());
   }
 
   updateHeroHealthBar() {
@@ -342,6 +389,7 @@ export class GameScene extends Phaser.Scene {
     this.waveCounterText.setText(
       this.presentationSystem.formatWaveCounter(wave.waveNumber, this.waveRemainingSeconds)
     );
+    this.waveBannerText.setText(this.presentationSystem.formatWaveTitle(wave.waveTitle));
   }
 
   updateEnemyCombat() {
@@ -430,6 +478,7 @@ export class GameScene extends Phaser.Scene {
       tint: descriptor.visuals.bodyTint,
       outlineTint: descriptor.visuals.outlineTint,
       weaponVfxTint: descriptor.visuals.weaponVfxTint,
+      weaponTexture: this.resolveWeaponTexture(descriptor.visuals.weaponId),
       dropType: descriptor.isBoss ? "boss_burst" : "rolled_loot",
     };
 
@@ -463,12 +512,14 @@ export class GameScene extends Phaser.Scene {
   showWaveBanner(text) {
     this.waveBannerText.setText(text);
     this.waveBannerText.setAlpha(1);
+    this.waveBannerText.setScale(1.06);
     this.tweens.killTweensOf(this.waveBannerText);
     this.tweens.add({
       targets: this.waveBannerText,
-      alpha: 0,
-      delay: gameConfig.runtime.ui.waveBannerDurationMs,
-      duration: 500,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 240,
+      ease: "Sine.Out",
     });
   }
 
@@ -559,5 +610,56 @@ export class GameScene extends Phaser.Scene {
     if (this.waveSpawnEvent) {
       this.waveSpawnEvent.paused = false;
     }
+  }
+
+  handleEscapePressed() {
+    if (this.session.pauseReason === "level_up") {
+      return;
+    }
+    if (this.session.pauseReason === "pause_menu") {
+      this.closePauseMenu();
+      return;
+    }
+    this.openPauseMenu();
+  }
+
+  openPauseMenu() {
+    this.pauseButtons.forEach((button) => {
+      button.hitZone.setVisible(true);
+      button.hitZone.input.enabled = true;
+      button.container.setScale(1);
+    });
+    this.pauseOverlay.setVisible(true);
+    this.setGameplayPaused(true, "pause_menu");
+  }
+
+  closePauseMenu() {
+    this.pauseButtons.forEach((button) => {
+      button.hitZone.setVisible(false);
+      button.hitZone.input.enabled = false;
+      button.container.setScale(1);
+    });
+    this.pauseOverlay.setVisible(false);
+    this.setGameplayPaused(false, null);
+  }
+
+  resolveWeaponTexture(weaponId) {
+    const map = {
+      melee: "melee-icon",
+      pistol: "pistol-icon",
+      shotgun: "shotgun-icon",
+      grenade: "grenade-icon",
+    };
+    return map[weaponId] ?? "shotgun-icon";
+  }
+
+  resolveHeroWeaponTexture() {
+    const scores = {
+      shotgun: 1 + (this.hero.parameterStacks.shotgunWeapon ?? 0),
+      pistol: this.hero.parameterStacks.pistolWeapon ?? 0,
+      grenade: this.hero.parameterStacks.grenadeWeapon ?? 0,
+    };
+    const best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "shotgun";
+    return this.resolveWeaponTexture(best);
   }
 }

@@ -32,6 +32,8 @@ export class BootScene extends Phaser.Scene {
     this.makeRoundedRectTexture("shell-icon", 12, 28, 4, 0xd6ab5d, 0x6b471f);
     this.makeRoundedRectTexture("pistol-icon", 12, 20, 3, 0xd9edf9, 0x4d6f87);
     this.makeCircleTexture("grenade-icon", 12, 0xb4c0ca, 0x42505e);
+    this.makeShotgunIconTexture("shotgun-icon", 34, 14, 0x7a532d, 0x24140b);
+    this.makeMeleeIconTexture("melee-icon", 24, 10, 0xc89657, 0x5a3112);
     this.makeMedkitTexture("medkit-pickup", 30);
     this.makeStarTexture("xp-star", 28, 0xf8e37b, 0xa5791f);
   }
@@ -124,6 +126,31 @@ export class BootScene extends Phaser.Scene {
     graphics.fillPath();
     graphics.strokePath();
     graphics.generateTexture(key, size, size);
+    graphics.destroy();
+  }
+
+  makeShotgunIconTexture(key, width, height, fillColor, strokeColor) {
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    graphics.fillStyle(fillColor, 1);
+    graphics.lineStyle(2, strokeColor, 1);
+    graphics.fillRoundedRect(2, height / 2 - 3, width - 6, 6, 3);
+    graphics.strokeRoundedRect(2, height / 2 - 3, width - 6, 6, 3);
+    graphics.fillRoundedRect(7, height / 2 - 1, 7, 9, 2);
+    graphics.strokeRoundedRect(7, height / 2 - 1, 7, 9, 2);
+    graphics.fillRect(width - 6, height / 2 - 2, 4, 4);
+    graphics.generateTexture(key, width, height + 8);
+    graphics.destroy();
+  }
+
+  makeMeleeIconTexture(key, width, height, fillColor, strokeColor) {
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    graphics.fillStyle(fillColor, 1);
+    graphics.lineStyle(2, strokeColor, 1);
+    graphics.fillRoundedRect(2, height / 2 - 2, width - 10, 4, 2);
+    graphics.strokeRoundedRect(2, height / 2 - 2, width - 10, 4, 2);
+    graphics.fillCircle(width - 7, height / 2, 4);
+    graphics.strokeCircle(width - 7, height / 2, 4);
+    graphics.generateTexture(key, width, height);
     graphics.destroy();
   }
 }
