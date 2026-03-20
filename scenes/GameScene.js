@@ -10,13 +10,13 @@ const SHOT_COOLDOWN_MS = 280;
 const SHOT_PELLET_COUNT = 8;
 const SHOT_SPREAD = 0.34;
 const ZOMBIE_COUNT = 18;
-const ZOMBIE_SPAWN_INTERVAL_MS = 2000;
+const DEFAULT_ZOMBIE_SPAWN_INTERVAL_MS = 1000;
 const ZOMBIE_SPAWN_MIN_RADIUS = 220;
 const ZOMBIE_SPAWN_MAX_RADIUS = 360;
-const BOSS_SPAWN_INTERVAL_MS = 60000;
+const DEFAULT_BOSS_SPAWN_INTERVAL_MS = 20000;
 const BOSS_HEALTH = 100;
 const PELLET_HIT_RADIUS = 22;
-const AGGRO_RADIUS = Math.round(960 * 0.1);
+const DEFAULT_AGGRO_RADIUS = Math.round(960 * 0.3);
 const PLAYER_HIT_RADIUS = 34;
 const ZOMBIE_ATTACK_DAMAGE = 5;
 const ZOMBIE_ATTACK_COOLDOWN_MS = 2000;
@@ -43,6 +43,11 @@ export class GameScene extends Phaser.Scene {
     this.rangePresetIndex = 1;
     this.bossesSpawned = 0;
     this.roundStartedAt = this.time.now;
+    this.settings = {
+      zombieSpawnIntervalMs: DEFAULT_ZOMBIE_SPAWN_INTERVAL_MS,
+      aggroRadius: DEFAULT_AGGRO_RADIUS,
+      bossSpawnIntervalMs: DEFAULT_BOSS_SPAWN_INTERVAL_MS,
+    };
 
     this.physics.world.setBounds(0, 0, 2200, 1600);
     this.cameras.main.setBackgroundColor("#17261b");
@@ -53,6 +58,7 @@ export class GameScene extends Phaser.Scene {
     this.createPickups();
     this.createZombies();
     this.createUi();
+    this.createSettingsPanel();
     this.setupCamera();
     this.setupInput();
     this.setupCollisions();
@@ -174,6 +180,145 @@ export class GameScene extends Phaser.Scene {
     this.updateUi();
   }
 
+  createSettingsPanel() {
+    const panelWidth = 340;
+    const panelHeight = 180;
+    const x = 18;
+    const y = this.scale.height - panelHeight - 18;
+
+    this.settingsUi = this.add.container(x, y).setScrollFactor(0).setDepth(20);
+
+    const panel = this.add.graphics();
+    panel.fillStyle(0x081018, 0.88);
+    panel.lineStyle(2, 0x36596e, 1);
+    panel.fillRoundedRect(0, 0, panelWidth, panelHeight, 16);
+    panel.strokeRoundedRect(0, 0, panelWidth, panelHeight, 16);
+    this.settingsUi.add(panel);
+
+    const title = this.add.text(18, 12, "Game Settings", {
+      fontFamily: "Arial Black, sans-serif",
+      fontSize: "18px",
+      color: "#f0ead2",
+    });
+    this.settingsUi.add(title);
+
+    this.settingsSliders = [
+      this.createSliderControl({
+        parent: this.settingsUi,
+        x: 18,
+        y: 48,
+        width: 286,
+        label: "Zombie Spawn",
+        min: 0.5,
+        max: 3,
+        step: 0.1,
+        initial: this.settings.zombieSpawnIntervalMs / 1000,
+        formatValue: (value) => `${value.toFixed(1)}s`,
+        onChange: (value) => this.updateZombieSpawnInterval(value * 1000),
+      }),
+      this.createSliderControl({
+        parent: this.settingsUi,
+        x: 18,
+        y: 95,
+        width: 286,
+        label: "Aggro Radius",
+        min: 120,
+        max: 520,
+        step: 10,
+        initial: this.settings.aggroRadius,
+        formatValue: (value) => `${Math.round(value)}`,
+        onChange: (value) => this.updateAggroRadius(value),
+      }),
+      this.createSliderControl({
+        parent: this.settingsUi,
+        x: 18,
+        y: 142,
+        width: 286,
+        label: "Boss Timer",
+        min: 10,
+        max: 90,
+        step: 1,
+        initial: this.settings.bossSpawnIntervalMs / 1000,
+        formatValue: (value) => `${Math.round(value)}s`,
+        onChange: (value) => this.updateBossSpawnInterval(value * 1000),
+      }),
+    ];
+  }
+
+  createSliderControl({ parent, x, y, width, label, min, max, step, initial, formatValue, onChange }) {
+    const labelText = this.add.text(x, y, label, {
+      fontFamily: "Verdana, sans-serif",
+      fontSize: "15px",
+      color: "#c6d9e5",
+    });
+    const valueText = this.add.text(x + width + 8, y, "", {
+      fontFamily: "Verdana, sans-serif",
+      fontSize: "15px",
+      color: "#ffd791",
+    });
+    const track = this.add.graphics();
+    const fill = this.add.graphics();
+    const knob = this.add.circle(0, 0, 8, 0xffc26b).setStrokeStyle(2, 0x5b3715);
+    knob.setInteractive({ draggable: true, useHandCursor: true });
+    this.input.setDraggable(knob);
+
+    const slider = {
+      min,
+      max,
+      step,
+      value: initial,
+      x,
+      y,
+      width,
+      track,
+      fill,
+      knob,
+      valueText,
+      formatValue,
+      onChange,
+    };
+
+    const updateVisuals = () => {
+      const progress = (slider.value - min) / (max - min);
+      const knobX = x + progress * width;
+      const trackY = y + 24;
+
+      track.clear();
+      track.fillStyle(0x1c2b36, 1);
+      track.fillRoundedRect(x, trackY, width, 8, 4);
+
+      fill.clear();
+      fill.fillStyle(0xd06f3e, 1);
+      fill.fillRoundedRect(x, trackY, Math.max(8, progress * width), 8, 4);
+
+      knob.setPosition(knobX, trackY + 4);
+      valueText.setText(formatValue(slider.value)).setPosition(x + width + 8, y);
+    };
+
+    const setValueFromPointer = (pointerX) => {
+      const progress = Phaser.Math.Clamp((pointerX - x) / width, 0, 1);
+      const rawValue = min + progress * (max - min);
+      const steppedValue = Math.round(rawValue / step) * step;
+      slider.value = Phaser.Math.Clamp(steppedValue, min, max);
+      updateVisuals();
+      onChange(slider.value);
+    };
+
+    knob.on("drag", (pointer, dragX) => {
+      setValueFromPointer(dragX);
+    });
+
+    const hitArea = this.add.zone(x, y + 16, width, 24).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    hitArea.on("pointerdown", (pointer) => {
+      setValueFromPointer(pointer.x);
+    });
+
+    updateVisuals();
+
+    parent.add([labelText, valueText, track, fill, hitArea, knob]);
+    return slider;
+  }
+
   setupCamera() {
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     this.cameras.main.setBounds(0, 0, 2200, 1600);
@@ -206,7 +351,7 @@ export class GameScene extends Phaser.Scene {
 
   setupSpawnTimers() {
     this.spawnTimer = this.time.addEvent({
-      delay: ZOMBIE_SPAWN_INTERVAL_MS,
+      delay: this.settings.zombieSpawnIntervalMs,
       loop: true,
       callback: () => {
         if (!this.isRoundFinished) {
@@ -216,7 +361,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.bossTimer = this.time.addEvent({
-      delay: BOSS_SPAWN_INTERVAL_MS,
+      delay: this.settings.bossSpawnIntervalMs,
       loop: true,
       callback: () => {
         if (!this.isRoundFinished) {
@@ -303,7 +448,7 @@ export class GameScene extends Phaser.Scene {
   updateUi() {
     const bossSecondsLeft = this.bossTimer
       ? Math.max(0, Math.ceil(this.bossTimer.getRemaining() / 1000))
-      : Math.ceil(BOSS_SPAWN_INTERVAL_MS / 1000);
+      : Math.ceil(this.settings.bossSpawnIntervalMs / 1000);
     this.healthText.setText(`HP: ${this.player.healthPoints}/${PLAYER_MAX_HEALTH}`);
     this.ammoText.setText(`Ammo: ${this.player.clipAmmo}/${this.player.reserveAmmo}`);
     this.killsText.setText(`Zombies down: ${this.kills}`);
@@ -607,7 +752,7 @@ export class GameScene extends Phaser.Scene {
       maxHealth: options.maxHealth ?? 10,
       moveSpeed: options.moveSpeed,
       tint: options.tint,
-      aggroRadius: AGGRO_RADIUS,
+      aggroRadius: this.settings.aggroRadius,
       attackCooldownMs: ZOMBIE_ATTACK_COOLDOWN_MS,
     });
     this.zombies.add(zombie);
@@ -669,5 +814,43 @@ export class GameScene extends Phaser.Scene {
     graphics.fillEllipse(560, 460, 520, 200);
     graphics.fillEllipse(1480, 1080, 620, 220);
     graphics.fillEllipse(1780, 420, 420, 170);
+  }
+
+  updateZombieSpawnInterval(delayMs) {
+    this.settings.zombieSpawnIntervalMs = delayMs;
+    if (this.spawnTimer) {
+      this.spawnTimer.reset({
+        delay: this.settings.zombieSpawnIntervalMs,
+        loop: true,
+        callback: () => {
+          if (!this.isRoundFinished) {
+            this.spawnZombieNearPlayer(false);
+          }
+        },
+      });
+    }
+  }
+
+  updateAggroRadius(radius) {
+    this.settings.aggroRadius = radius;
+    this.zombies.getChildren().forEach((zombie) => {
+      zombie.aggroRadius = radius;
+    });
+  }
+
+  updateBossSpawnInterval(delayMs) {
+    this.settings.bossSpawnIntervalMs = delayMs;
+    if (this.bossTimer) {
+      this.bossTimer.reset({
+        delay: this.settings.bossSpawnIntervalMs,
+        loop: true,
+        callback: () => {
+          if (!this.isRoundFinished) {
+            this.spawnZombieNearPlayer(true);
+            this.bossesSpawned += 1;
+          }
+        },
+      });
+    }
   }
 }
