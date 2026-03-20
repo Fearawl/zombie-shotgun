@@ -29,7 +29,7 @@ export class StartScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width - 26, 24, "v008", {
+      .text(width - 26, 24, "v009", {
         fontFamily: "Arial Black, sans-serif",
         fontSize: "26px",
         color: "#ffe59f",

@@ -27,6 +27,9 @@ const ZOMBIE_SPEED_BOOST_PER_BOSS = 1.2;
 const FAST_ZOMBIE_CHANCE = 0.28;
 const GRENADE_DAMAGE = 45;
 const GRENADE_RADIUS = 120;
+const MAX_ACTIVE_ZOMBIES = 48;
+const MAX_DROPPED_PICKUPS = 24;
+const DROPPED_PICKUP_LIFETIME_MS = 18000;
 const RANGE_PRESETS = [
   { label: "Short", screenRatio: 0.22, color: 0xa0d8ff },
   { label: "Medium", screenRatio: 0.3, color: 0xf3d57d },
@@ -913,11 +916,18 @@ export class GameScene extends Phaser.Scene {
   }
 
   spawnZombieDrop(x, y, pickupType) {
+    this.trimDroppedPickups();
     const pickup = new AmmoPickup(this, x, y, {
       ...this.buildPickupOptions(pickupType),
       shouldRespawn: false,
     });
     this.pickups.add(pickup);
+
+    this.time.delayedCall(DROPPED_PICKUP_LIFETIME_MS, () => {
+      if (pickup.active) {
+        pickup.consume();
+      }
+    });
   }
 
   buildPickupOptions(pickupType) {
@@ -1108,6 +1118,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   spawnZombieNearPlayer(isBoss) {
+    if (!isBoss && this.zombies.countActive(true) >= MAX_ACTIVE_ZOMBIES) {
+      return;
+    }
+
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
     const distance = Phaser.Math.Between(ZOMBIE_SPAWN_MIN_RADIUS, ZOMBIE_SPAWN_MAX_RADIUS);
     const x = Phaser.Math.Clamp(
@@ -1137,6 +1151,17 @@ export class GameScene extends Phaser.Scene {
       emerge: true,
       isFast: Math.random() < FAST_ZOMBIE_CHANCE,
     });
+  }
+
+  trimDroppedPickups() {
+    const droppedPickups = this.pickups.getChildren().filter((pickup) => pickup.active && !pickup.shouldRespawn);
+    if (droppedPickups.length < MAX_DROPPED_PICKUPS) {
+      return;
+    }
+
+    droppedPickups
+      .slice(0, droppedPickups.length - MAX_DROPPED_PICKUPS + 1)
+      .forEach((pickup) => pickup.consume());
   }
 
   drawArena() {

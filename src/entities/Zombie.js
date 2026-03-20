@@ -186,6 +186,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
       targets: stain,
       alpha: 0.3,
       duration: 1800,
+      onComplete: () => stain.destroy(),
     });
 
     if (this.scene && this.scene.spawnZombieDrop) {
