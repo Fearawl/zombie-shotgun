@@ -6,12 +6,14 @@ export class ResultScene extends Phaser.Scene {
   create(data) {
     const { width, height } = this.scale;
     const kills = data?.kills ?? 0;
+    const survivedSeconds = data?.survivedSeconds ?? 0;
+    const bossesSpawned = data?.bossesSpawned ?? 0;
 
     this.cameras.main.setBackgroundColor("#101922");
     this.drawBackdrop(width, height);
 
     this.add
-      .text(width / 2, 110, "Round Complete", {
+      .text(width / 2, 110, "Game Over", {
         fontFamily: "Arial Black, sans-serif",
         fontSize: "40px",
         color: "#fff1cf",
@@ -29,10 +31,18 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, 270, "Time limit: 60 seconds", {
+      .text(width / 2, 270, `Survived: ${survivedSeconds}s`, {
         fontFamily: "Verdana, sans-serif",
         fontSize: "20px",
         color: "#c0d5e6",
+      })
+      .setOrigin(0.5);
+
+    this.add
+      .text(width / 2, 304, `Bosses spawned: ${bossesSpawned}`, {
+        fontFamily: "Verdana, sans-serif",
+        fontSize: "20px",
+        color: "#ffb390",
       })
       .setOrigin(0.5);
 

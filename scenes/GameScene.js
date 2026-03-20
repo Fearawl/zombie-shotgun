@@ -1,19 +1,25 @@
 import { AmmoPickup } from "../src/entities/AmmoPickup.js";
 import { Zombie } from "../src/entities/Zombie.js";
 
-const ROUND_DURATION_MS = 60000;
 const PLAYER_SPEED = 250;
-const STARTING_AMMO = 10;
+const PLAYER_MAX_HEALTH = 10;
+const CLIP_SIZE = 6;
+const STARTING_RESERVE_AMMO = 10;
 const SHOT_DAMAGE = 5;
 const SHOT_COOLDOWN_MS = 280;
 const SHOT_PELLET_COUNT = 8;
 const SHOT_SPREAD = 0.34;
-const SHOT_SPEED = 900;
 const ZOMBIE_COUNT = 18;
 const ZOMBIE_SPAWN_INTERVAL_MS = 2000;
 const ZOMBIE_SPAWN_MIN_RADIUS = 220;
 const ZOMBIE_SPAWN_MAX_RADIUS = 360;
+const BOSS_SPAWN_INTERVAL_MS = 60000;
+const BOSS_HEALTH = 100;
 const PELLET_HIT_RADIUS = 22;
+const AGGRO_RADIUS = Math.round(960 * 0.1);
+const PLAYER_HIT_RADIUS = 34;
+const ZOMBIE_ATTACK_DAMAGE = 5;
+const ZOMBIE_ATTACK_COOLDOWN_MS = 2000;
 const RANGE_PRESETS = [
   { label: "Short", screenRatio: 0.22, color: 0xa0d8ff },
   { label: "Medium", screenRatio: 0.3, color: 0xf3d57d },
@@ -26,17 +32,17 @@ export class GameScene extends Phaser.Scene {
     this.kills = 0;
     this.lastShotAt = 0;
     this.isRoundFinished = false;
-    this.shotSequence = 0;
     this.rangePresetIndex = 1;
+    this.bossesSpawned = 0;
   }
 
   create() {
     this.kills = 0;
     this.isRoundFinished = false;
-    this.roundEndsAt = this.time.now + ROUND_DURATION_MS;
     this.lastShotAt = -SHOT_COOLDOWN_MS;
-    this.shotSequence = 0;
     this.rangePresetIndex = 1;
+    this.bossesSpawned = 0;
+    this.roundStartedAt = this.time.now;
 
     this.physics.world.setBounds(0, 0, 2200, 1600);
     this.cameras.main.setBackgroundColor("#17261b");
@@ -50,7 +56,7 @@ export class GameScene extends Phaser.Scene {
     this.setupCamera();
     this.setupInput();
     this.setupCollisions();
-    this.setupZombieSpawner();
+    this.setupSpawnTimers();
   }
 
   createGroups() {
@@ -69,8 +75,10 @@ export class GameScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(360, 300, "player-body");
     this.player.setCollideWorldBounds(true);
     this.player.setCircle(18, 4, 4);
-    this.player.ammo = STARTING_AMMO;
     this.player.facingAngle = 0;
+    this.player.healthPoints = PLAYER_MAX_HEALTH;
+    this.player.clipAmmo = CLIP_SIZE;
+    this.player.reserveAmmo = STARTING_RESERVE_AMMO - CLIP_SIZE;
 
     this.playerShadow = this.add.ellipse(this.player.x + 6, this.player.y + 24, 44, 18, 0x000000, 0.24);
     this.shotRangeGraphics = this.add.graphics().setDepth(1);
@@ -85,7 +93,7 @@ export class GameScene extends Phaser.Scene {
     ];
 
     positions.forEach(([x, y]) => {
-      const pickup = new AmmoPickup(this, x, y);
+      const pickup = new AmmoPickup(this, x, y, { ammoAmount: 10 });
       this.pickups.add(pickup);
     });
   }
@@ -110,7 +118,7 @@ export class GameScene extends Phaser.Scene {
       const [x, y] = points[i % points.length];
       const offsetX = Math.floor(i / points.length) * 58;
       const offsetY = (i % 2 === 0 ? 1 : -1) * Math.floor(i / points.length) * 44;
-      this.spawnZombie(x + offsetX, y + offsetY, false);
+      this.spawnZombie(x + offsetX, y + offsetY, { emerge: false });
     }
   }
 
@@ -120,32 +128,49 @@ export class GameScene extends Phaser.Scene {
     const panel = this.add.graphics();
     panel.fillStyle(0x09131a, 0.85);
     panel.lineStyle(2, 0x305164, 1);
-    panel.fillRoundedRect(0, 0, 320, 150, 16);
-    panel.strokeRoundedRect(0, 0, 320, 150, 16);
+    panel.fillRoundedRect(0, 0, 340, 186, 16);
+    panel.strokeRoundedRect(0, 0, 340, 186, 16);
     this.ui.add(panel);
 
-    this.ammoText = this.add.text(20, 16, "", {
+    this.healthText = this.add.text(20, 16, "", {
+      fontFamily: "Verdana, sans-serif",
+      fontSize: "20px",
+      color: "#ffb2b2",
+    });
+    this.ammoText = this.add.text(20, 46, "", {
       fontFamily: "Verdana, sans-serif",
       fontSize: "20px",
       color: "#fce7b4",
     });
-    this.killsText = this.add.text(20, 48, "", {
+    this.killsText = this.add.text(20, 76, "", {
       fontFamily: "Verdana, sans-serif",
       fontSize: "20px",
       color: "#b9f0c4",
     });
-    this.timerText = this.add.text(20, 80, "", {
+    this.bossText = this.add.text(20, 106, "", {
       fontFamily: "Verdana, sans-serif",
       fontSize: "20px",
-      color: "#b7dfff",
+      color: "#ff9f7c",
     });
-    this.rangeText = this.add.text(20, 112, "", {
+    this.rangeText = this.add.text(20, 136, "", {
       fontFamily: "Verdana, sans-serif",
       fontSize: "18px",
       color: "#f2cfa4",
     });
+    this.reloadText = this.add.text(20, 160, "Reload: R", {
+      fontFamily: "Verdana, sans-serif",
+      fontSize: "16px",
+      color: "#9fc2d7",
+    });
 
-    this.ui.add([this.ammoText, this.killsText, this.timerText, this.rangeText]);
+    this.ui.add([
+      this.healthText,
+      this.ammoText,
+      this.killsText,
+      this.bossText,
+      this.rangeText,
+      this.reloadText,
+    ]);
     this.updateUi();
   }
 
@@ -156,7 +181,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   setupInput() {
-    this.keys = this.input.keyboard.addKeys("W,A,S,D");
+    this.keys = this.input.keyboard.addKeys("W,A,S,D,R");
     if (this.input.mouse) {
       this.input.mouse.disableContextMenu();
     }
@@ -171,21 +196,33 @@ export class GameScene extends Phaser.Scene {
         this.cycleShotRange();
       }
     });
+    this.input.keyboard.on("keydown-R", () => this.reloadWeapon());
   }
 
   setupCollisions() {
     this.physics.add.overlap(this.player, this.pickups, this.handlePickup, undefined, this);
+    this.physics.add.overlap(this.player, this.zombies, this.handleZombieAttack, undefined, this);
   }
 
-  setupZombieSpawner() {
+  setupSpawnTimers() {
     this.spawnTimer = this.time.addEvent({
       delay: ZOMBIE_SPAWN_INTERVAL_MS,
       loop: true,
       callback: () => {
-        if (this.isRoundFinished) {
-          return;
+        if (!this.isRoundFinished) {
+          this.spawnZombieNearPlayer(false);
         }
-        this.spawnZombieNearPlayer();
+      },
+    });
+
+    this.bossTimer = this.time.addEvent({
+      delay: BOSS_SPAWN_INTERVAL_MS,
+      loop: true,
+      callback: () => {
+        if (!this.isRoundFinished) {
+          this.spawnZombieNearPlayer(true);
+          this.bossesSpawned += 1;
+        }
       },
     });
   }
@@ -200,10 +237,6 @@ export class GameScene extends Phaser.Scene {
     this.updatePlayerVisuals();
     this.updateShotRangeIndicator();
     this.updateUi();
-
-    if (this.time.now >= this.roundEndsAt) {
-      this.finishRound();
-    }
   }
 
   updatePlayerMovement() {
@@ -268,11 +301,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   updateUi() {
-    const secondsLeft = Math.max(0, Math.ceil((this.roundEndsAt - this.time.now) / 1000));
-    const ammoDisplayCap = Math.max(STARTING_AMMO, this.player.ammo);
-    this.ammoText.setText(`Ammo: ${this.player.ammo}/${ammoDisplayCap}`);
+    const bossSecondsLeft = Math.max(0, Math.ceil((this.bossTimer.getRemainingSeconds?.() ?? 0)));
+    this.healthText.setText(`HP: ${this.player.healthPoints}/${PLAYER_MAX_HEALTH}`);
+    this.ammoText.setText(`Ammo: ${this.player.clipAmmo}/${this.player.reserveAmmo}`);
     this.killsText.setText(`Zombies down: ${this.kills}`);
-    this.timerText.setText(`Time: ${secondsLeft}s`);
+    this.bossText.setText(`Boss in: ${bossSecondsLeft}s`);
     this.rangeText.setText(`Range: ${this.getCurrentRangePreset().label} (RMB)`);
   }
 
@@ -285,20 +318,19 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.player.ammo <= 0) {
+    if (this.player.clipAmmo <= 0) {
       this.flashUi("#ff8b7d");
       return;
     }
 
     this.lastShotAt = this.time.now;
-    this.shotSequence += 1;
-    this.player.ammo -= 1;
+    this.player.clipAmmo -= 1;
 
     const targetX = pointer.worldX;
     const targetY = pointer.worldY;
     const baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, targetX, targetY);
     const rangeDistance = this.getCurrentShotDistance();
-    const shotLifetimeMs = Math.round((rangeDistance / SHOT_SPEED) * 1000);
+    const shotLifetimeMs = Math.round((rangeDistance / 900) * 1000);
 
     for (let i = 0; i < SHOT_PELLET_COUNT; i += 1) {
       const t = SHOT_PELLET_COUNT === 1 ? 0.5 : i / (SHOT_PELLET_COUNT - 1);
@@ -323,9 +355,25 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.applyShotDamage(baseAngle, rangeDistance);
-
     this.showMuzzleFlash(baseAngle);
     this.cameras.main.shake(65, 0.0025);
+  }
+
+  reloadWeapon() {
+    if (this.isRoundFinished) {
+      return;
+    }
+
+    if (this.player.clipAmmo >= CLIP_SIZE || this.player.reserveAmmo <= 0) {
+      this.flashUi("#ff8b7d");
+      return;
+    }
+
+    const neededAmmo = CLIP_SIZE - this.player.clipAmmo;
+    const loadedAmmo = Math.min(neededAmmo, this.player.reserveAmmo);
+    this.player.clipAmmo += loadedAmmo;
+    this.player.reserveAmmo -= loadedAmmo;
+    this.flashUi("#a7efc5");
   }
 
   showMuzzleFlash(angle) {
@@ -351,7 +399,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    player.ammo += pickup.ammoAmount;
+    player.reserveAmmo += pickup.ammoAmount;
     pickup.consume();
     this.flashUi("#f9d27b");
 
@@ -372,21 +420,48 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  handleZombieAttack(player, zombie) {
+    if (!zombie.active || !zombie.canMove) {
+      return;
+    }
+
+    const distance = Phaser.Math.Distance.Between(player.x, player.y, zombie.x, zombie.y);
+    if (distance > PLAYER_HIT_RADIUS) {
+      return;
+    }
+
+    if (!zombie.canAttack(this.time.now)) {
+      return;
+    }
+
+    zombie.recordAttack(this.time.now);
+    player.healthPoints = Math.max(0, player.healthPoints - ZOMBIE_ATTACK_DAMAGE);
+    this.cameras.main.shake(90, 0.003);
+    this.flashUi("#ff8b7d");
+
+    if (player.healthPoints <= 0) {
+      this.finishRound();
+    }
+  }
+
   flashUi(color) {
     const previousColors = [
+      this.healthText.style.color,
       this.ammoText.style.color,
       this.killsText.style.color,
-      this.timerText.style.color,
+      this.bossText.style.color,
     ];
 
+    this.healthText.setColor(color);
     this.ammoText.setColor(color);
     this.killsText.setColor(color);
-    this.timerText.setColor(color);
+    this.bossText.setColor(color);
 
     this.time.delayedCall(120, () => {
-      this.ammoText.setColor(previousColors[0]);
-      this.killsText.setColor(previousColors[1]);
-      this.timerText.setColor(previousColors[2]);
+      this.healthText.setColor(previousColors[0]);
+      this.ammoText.setColor(previousColors[1]);
+      this.killsText.setColor(previousColors[2]);
+      this.bossText.setColor(previousColors[3]);
     });
   }
 
@@ -401,9 +476,14 @@ export class GameScene extends Phaser.Scene {
       this.spawnTimer.remove(false);
       this.spawnTimer = null;
     }
+    if (this.bossTimer) {
+      this.bossTimer.remove(false);
+      this.bossTimer = null;
+    }
     this.scene.start("ResultScene", {
       kills: this.kills,
-      elapsedSeconds: 60,
+      survivedSeconds: Math.floor((this.time.now - this.roundStartedAt) / 1000),
+      bossesSpawned: this.bossesSpawned,
     });
   }
 
@@ -519,18 +599,25 @@ export class GameScene extends Phaser.Scene {
     return Phaser.Math.Distance.Between(nearestX, nearestY, px, py);
   }
 
-  spawnZombie(x, y, emerge = true) {
-    const zombie = new Zombie(this, x, y);
+  spawnZombie(x, y, options = {}) {
+    const zombie = new Zombie(this, x, y, {
+      isBoss: options.isBoss ?? false,
+      maxHealth: options.maxHealth ?? 10,
+      moveSpeed: options.moveSpeed,
+      tint: options.tint,
+      aggroRadius: AGGRO_RADIUS,
+      attackCooldownMs: ZOMBIE_ATTACK_COOLDOWN_MS,
+    });
     this.zombies.add(zombie);
 
-    if (emerge) {
-      zombie.emergeFromGround();
+    if (options.emerge !== false) {
+      zombie.emergeFromGround(options.isBoss ? 700 : 420);
     }
 
     return zombie;
   }
 
-  spawnZombieNearPlayer() {
+  spawnZombieNearPlayer(isBoss) {
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
     const distance = Phaser.Math.Between(ZOMBIE_SPAWN_MIN_RADIUS, ZOMBIE_SPAWN_MAX_RADIUS);
     const x = Phaser.Math.Clamp(
@@ -544,7 +631,18 @@ export class GameScene extends Phaser.Scene {
       this.physics.world.bounds.height - 80
     );
 
-    this.spawnZombie(x, y, true);
+    if (isBoss) {
+      this.spawnZombie(x, y, {
+        emerge: true,
+        isBoss: true,
+        maxHealth: BOSS_HEALTH,
+        moveSpeed: 42,
+        tint: 0xc84a42,
+      });
+      return;
+    }
+
+    this.spawnZombie(x, y, { emerge: true });
   }
 
   drawArena() {

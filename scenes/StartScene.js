@@ -21,7 +21,7 @@ export class StartScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, 124, "3D-style action shooter with a 60 second round", {
+      .text(width / 2, 124, "Survive, reload, and face a new boss every 60 seconds", {
         fontFamily: "Verdana, sans-serif",
         fontSize: "18px",
         color: "#bfd3e1",
@@ -29,7 +29,7 @@ export class StartScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width - 26, 24, "v001", {
+      .text(width - 26, 24, "v002", {
         fontFamily: "Arial Black, sans-serif",
         fontSize: "26px",
         color: "#ffe59f",
