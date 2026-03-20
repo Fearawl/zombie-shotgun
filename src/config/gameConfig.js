@@ -4,7 +4,7 @@ const sharedBaseUnitStats = {
 };
 
 export const gameConfig = {
-  version: "preproduction-019",
+  version: "preproduction-020",
   runtime: {
     world: {
       width: 2200,
@@ -15,12 +15,14 @@ export const gameConfig = {
       spawnY: 300,
       bodyRadius: 18,
       shotgun: {
+        magazineSize: 8,
         pellets: 8,
         damagePerPellet: 2,
         spreadRadians: 0.34,
         range: 290,
         cooldownMs: 280,
         projectileSpeed: 900,
+        reloadMs: 700,
       },
       contactDamageGraceMs: 450,
     },

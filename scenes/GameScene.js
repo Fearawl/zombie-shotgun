@@ -65,6 +65,7 @@ export class GameScene extends Phaser.Scene {
     this.lastHeroPistolAt = -300;
     this.lastHeroMeleeAt = -600;
     this.lastHeroGrenadeAt = -900;
+    this.heroReloadCompleteAt = 0;
     this.currentUpgradeCards = null;
     this.physics.world.setBounds(0, 0, gameConfig.runtime.world.width, gameConfig.runtime.world.height);
   }
@@ -105,6 +106,9 @@ export class GameScene extends Phaser.Scene {
     this.player.setCollideWorldBounds(true);
     this.player.healthPoints = gameConfig.hero.base.health;
     this.player.maxHealth = gameConfig.hero.base.health;
+    this.player.shotgunMagazineSize = heroConfig.shotgun.magazineSize;
+    this.player.shotgunAmmo = heroConfig.shotgun.magazineSize;
+    this.player.isReloading = false;
 
     this.playerShadow = this.add.ellipse(this.player.x + 8, this.player.y + 24, 48, 18, 0x000000, 0.24);
     this.playerWeaponSprite = this.add.image(this.player.x, this.player.y, "melee-icon").setDepth(8.5);
@@ -135,7 +139,9 @@ export class GameScene extends Phaser.Scene {
 
   setupInput() {
     this.keys = this.input.keyboard.addKeys("W,A,S,D");
+    this.reloadKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
     this.input.keyboard.on("keydown-ESC", () => this.handleEscapePressed());
+    this.input.keyboard.on("keydown-R", () => this.tryReloadShotgun());
   }
 
   setupCollisions() {
@@ -149,6 +155,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.updateHeroMovement();
+    this.updateReloadState();
     this.updateHeroVisuals();
     this.updateHeroHealthBar();
     this.updatePickups();
@@ -156,6 +163,18 @@ export class GameScene extends Phaser.Scene {
     this.updateHeroCombat();
     this.updateEnemyCombat();
     this.tickWaveTimer();
+  }
+
+  updateReloadState() {
+    if (!this.player.isReloading) {
+      return;
+    }
+    if (this.time.now < this.heroReloadCompleteAt) {
+      return;
+    }
+
+    this.player.isReloading = false;
+    this.player.shotgunAmmo = this.player.shotgunMagazineSize;
   }
 
   updateHeroCombat() {
@@ -368,6 +387,19 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  tryReloadShotgun() {
+    if (this.isGameplayPaused || this.player.isReloading || !this.hero.weaponProfiles.shotgun) {
+      return false;
+    }
+    if (this.player.shotgunAmmo >= this.player.shotgunMagazineSize) {
+      return false;
+    }
+
+    this.player.isReloading = true;
+    this.heroReloadCompleteAt = this.time.now + this.hero.weaponProfiles.shotgun.reloadMs;
+    return true;
+  }
+
   showLevelUpChoices() {
     this.uiSystem.hidePauseMenu();
     this.currentUpgradeCards = this.progressionSystem.createUpgradeOffer();
@@ -463,15 +495,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   resolveHeroWeaponTexture() {
-    if (this.hero.weaponProfiles.shotgun) {
-      return "shotgun-icon";
-    }
     if (this.hero.weaponProfiles.pistol) {
       return "pistol-icon";
     }
     if (this.hero.weaponProfiles.grenade) {
       return "grenade-icon";
     }
-    return "melee-icon";
+    return "shotgun-icon";
   }
 }

@@ -43,11 +43,15 @@ export class CombatSystem {
     if (!shotgun) {
       return false;
     }
+    if (scene.player.isReloading || scene.player.shotgunAmmo <= 0) {
+      return false;
+    }
     if (scene.time.now - scene.lastHeroShotAt < shotgun.cooldownMs) {
       return false;
     }
 
     scene.lastHeroShotAt = scene.time.now;
+    scene.player.shotgunAmmo -= 1;
     const baseAngle = Phaser.Math.Angle.Between(scene.player.x, scene.player.y, pointer.worldX, pointer.worldY);
     const duration = Math.round((shotgun.radius / shotgun.projectileSpeed) * 1000);
 
@@ -71,6 +75,9 @@ export class CombatSystem {
     }
 
     this.showMuzzleFlash(scene, baseAngle);
+    if (scene.player.shotgunAmmo <= 0) {
+      scene.tryReloadShotgun();
+    }
     scene.cameras.main.shake(60, 0.0025);
     return true;
   }
@@ -376,6 +383,7 @@ export class CombatSystem {
 
   fireEnemyPistol(scene, enemy, weapon) {
     const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, scene.player.x, scene.player.y);
+    this.showEnemyMuzzleFlash(scene, enemy.x, enemy.y, angle, enemy.weaponVfxTint, 22);
     this.spawnEnemyProjectile(scene, {
       x: enemy.x + Math.cos(angle) * 18,
       y: enemy.y + Math.sin(angle) * 18,
@@ -391,6 +399,7 @@ export class CombatSystem {
 
   fireEnemyShotgun(scene, enemy, weapon) {
     const baseAngle = Phaser.Math.Angle.Between(enemy.x, enemy.y, scene.player.x, scene.player.y);
+    this.showEnemyMuzzleFlash(scene, enemy.x, enemy.y, baseAngle, enemy.weaponVfxTint, 30);
     const pellets = weapon.pellets ?? 8;
     for (let i = 0; i < pellets; i += 1) {
       const t = pellets === 1 ? 0.5 : i / (pellets - 1);
@@ -537,6 +546,22 @@ export class CombatSystem {
       y + Math.sin(angle + 0.34) * 30,
       x + Math.cos(angle - 0.34) * 30,
       y + Math.sin(angle - 0.34) * 30
+    );
+    scene.time.delayedCall(70, () => flash.destroy());
+  }
+
+  showEnemyMuzzleFlash(scene, originX, originY, angle, tint, radius) {
+    const flash = scene.add.graphics().setDepth(6.2);
+    const x = originX + Math.cos(angle) * 22;
+    const y = originY + Math.sin(angle) * 22;
+    flash.fillStyle(tint ?? 0xffd36a, 0.88);
+    flash.fillTriangle(
+      x,
+      y,
+      x + Math.cos(angle + 0.34) * radius,
+      y + Math.sin(angle + 0.34) * radius,
+      x + Math.cos(angle - 0.34) * radius,
+      y + Math.sin(angle - 0.34) * radius
     );
     scene.time.delayedCall(70, () => flash.destroy());
   }

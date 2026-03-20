@@ -60,27 +60,12 @@ export class WeaponSystem {
     const reloadStacks = parameterStacks.reload ?? 0;
     const shotgunStacks = parameterStacks.shotgunWeapon ?? 0;
     const pistolStacks = parameterStacks.pistolWeapon ?? 0;
-    const meleeStacks = parameterStacks.meleeWeapon ?? 0;
     const grenadeStacks = parameterStacks.grenadeWeapon ?? 0;
-    const baseMelee = this.config.enemy.baseWeapons.melee;
     const shotgunRuntime = this.config.runtime.hero.shotgun;
     const profiles = {
-      melee: {
-        id: "melee",
-        damage: baseMelee.damage * 2 + meleeStacks * this.config.parameters.meleeWeapon.damageBonus,
-        radius: baseMelee.radius * 6 + (meleeStacks > 0 ? 20 : 0),
-        cooldownMs: Math.max(
-          220,
-          baseMelee.cooldownSeconds * 1000 -
-            reloadStacks * this.config.parameters.reload.cooldownReductionSeconds * 1000
-        ),
-        bonusCount: Math.max(1, meleeStacks),
-      },
-    };
-
-    if (shotgunStacks > 0) {
-      profiles.shotgun = {
+      shotgun: {
         id: "shotgun",
+        magazineSize: shotgunRuntime.magazineSize,
         pellets: shotgunRuntime.pellets,
         damagePerPellet:
           shotgunRuntime.damagePerPellet +
@@ -94,12 +79,13 @@ export class WeaponSystem {
           shotgunRuntime.cooldownMs -
             reloadStacks * this.config.parameters.reload.cooldownReductionSeconds * 1000
         ),
+        reloadMs: shotgunRuntime.reloadMs,
         projectileSpeed:
           shotgunRuntime.projectileSpeed +
           shotgunStacks * this.config.parameters.shotgunWeapon.projectileSpeedBonus,
-        bonusCount: shotgunStacks,
-      };
-    }
+        bonusCount: 1 + shotgunStacks,
+      },
+    };
 
     if (pistolStacks > 0) {
       profiles.pistol = {
@@ -127,6 +113,22 @@ export class WeaponSystem {
         projectileSpeed: 420,
         grenadesPerVolley: 1 + grenadeStacks * this.config.parameters.grenadeWeapon.grenadesPerVolleyBonus,
         bonusCount: grenadeStacks,
+      };
+    }
+
+    const meleeStacks = parameterStacks.meleeWeapon ?? 0;
+    if (meleeStacks > 0) {
+      const baseMelee = this.config.enemy.baseWeapons.melee;
+      profiles.melee = {
+        id: "melee",
+        damage: baseMelee.damage * 2 + meleeStacks * this.config.parameters.meleeWeapon.damageBonus,
+        radius: baseMelee.radius * 6 + 20,
+        cooldownMs: Math.max(
+          220,
+          baseMelee.cooldownSeconds * 1000 -
+            reloadStacks * this.config.parameters.reload.cooldownReductionSeconds * 1000
+        ),
+        bonusCount: meleeStacks,
       };
     }
 

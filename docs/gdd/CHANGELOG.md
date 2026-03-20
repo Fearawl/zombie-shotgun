@@ -56,3 +56,5 @@
 - Increased the hero melee radius to three times the base size and synced the axe swing VFX to render the actual attack half-circle.
 - Doubled the hero melee radius again and doubled the base axe damage for the hero only.
 - Fixed hero melee auto-attack cadence so the axe swing now triggers on cooldown even with no enemy in range, aiming toward the cursor when it whiffs.
+- Removed the hero's default melee weapon, restored the default shotgun, and added manual `R` reload with an 8-shell magazine and infinite reserve.
+- Added HUD ammo state for the hero shotgun and matched enemy pistol/shotgun shots with muzzle-flash VFX similar to the hero.

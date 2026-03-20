@@ -29,6 +29,7 @@ export class PresentationSystem {
   formatHeroHud(player, session, kills, bossesSpawned) {
     return [
       `HP: ${player.healthPoints}/${player.maxHealth}`,
+      `SG: ${player.shotgunAmmo ?? 0}/${player.shotgunMagazineSize ?? 0}${player.isReloading ? " (Reloading)" : ""}`,
       `LV: ${session.heroLevel}   XP: ${session.heroXp}/${session.nextLevelXp}`,
       `Kills: ${kills}`,
       `Bosses: ${bossesSpawned}`,
