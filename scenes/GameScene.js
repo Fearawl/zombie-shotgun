@@ -2,13 +2,15 @@ import { gameConfig } from "../src/config/gameConfig.js";
 import { EventBus } from "../src/core/EventBus.js";
 import { GameSession } from "../src/core/GameSession.js";
 import { Hero } from "../src/entities/Hero.js";
+import { EnemyActor } from "../src/entities/EnemyActor.js";
+import { PickupActor } from "../src/entities/PickupActor.js";
 import { EnemyFactory } from "../src/systems/EnemyFactory.js";
+import { CombatSystem } from "../src/systems/CombatSystem.js";
 import { LootSystem } from "../src/systems/LootSystem.js";
 import { ProgressionSystem } from "../src/systems/ProgressionSystem.js";
 import { SpawnSystem } from "../src/systems/SpawnSystem.js";
 import { WaveSystem } from "../src/systems/WaveSystem.js";
 import { WeaponSystem } from "../src/systems/WeaponSystem.js";
-import { Zombie } from "../src/entities/Zombie.js";
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -34,6 +36,7 @@ export class GameScene extends Phaser.Scene {
     this.enemyFactory = new EnemyFactory(gameConfig, this.weaponSystem);
     this.waveSystem = new WaveSystem(gameConfig, this.eventBus, this.enemyFactory);
     this.spawnSystem = new SpawnSystem(gameConfig);
+    this.combatSystem = new CombatSystem(gameConfig);
     this.lootSystem = new LootSystem(gameConfig);
     this.progressionSystem = new ProgressionSystem(gameConfig);
 
@@ -77,8 +80,8 @@ export class GameScene extends Phaser.Scene {
 
     this.enemyProjectiles = this.add.group();
     this.heroProjectiles = this.add.group();
-    this.enemies = this.physics.add.group({ classType: Zombie, runChildUpdate: true });
-    this.pickups = this.physics.add.group();
+    this.enemies = this.physics.add.group({ runChildUpdate: true });
+    this.pickups = this.physics.add.group({ runChildUpdate: true });
   }
 
   createHeroSprite() {
@@ -236,7 +239,7 @@ export class GameScene extends Phaser.Scene {
     this.keys = this.input.keyboard.addKeys("W,A,S,D");
     this.input.on("pointerdown", (pointer) => {
       if (!this.isGameplayPaused && pointer.leftButtonDown()) {
-        this.fireHeroShotgun(pointer);
+        this.combatSystem.fireHeroShotgun(this, pointer);
       }
     });
   }
@@ -316,21 +319,9 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
-      const ageSeconds = (this.time.now - pickup.spawnedAt) / 1000;
-      const timeLeft = pickup.lifetimeSeconds - ageSeconds;
-      if (timeLeft <= 0) {
+      const isAlive = pickup.updatePresentation(this.time.now);
+      if (!isAlive) {
         this.destroyPickup(pickup);
-        return;
-      }
-
-      const bobOffset = Math.sin((this.time.now + pickup.floatOffset) / 170) * 3;
-      pickup.setY(pickup.baseY + bobOffset);
-      pickup.shadow.setPosition(pickup.x + 3, pickup.baseY + 11);
-
-      if (timeLeft <= pickup.blinkStartSecondsRemaining) {
-        pickup.setAlpha(Math.sin(this.time.now / 65) > 0 ? 1 : 0.25);
-      } else {
-        pickup.setAlpha(1);
       }
     });
   }
@@ -353,109 +344,9 @@ export class GameScene extends Phaser.Scene {
     this.waveCounterText.setText(`Wave ${wave.waveNumber} | ${Math.max(0, Math.ceil(this.waveRemainingSeconds))}s`);
   }
 
-  fireHeroShotgun(pointer) {
-    const shotgun = this.getHeroShotgunProfile();
-    if (this.time.now - this.lastHeroShotAt < shotgun.cooldownMs) {
-      return;
-    }
-
-    this.lastHeroShotAt = this.time.now;
-    const baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, pointer.worldX, pointer.worldY);
-    const duration = Math.round((shotgun.range / shotgun.projectileSpeed) * 1000);
-
-    for (let i = 0; i < shotgun.pellets; i += 1) {
-      const t = shotgun.pellets === 1 ? 0.5 : i / (shotgun.pellets - 1);
-      const angle = baseAngle + Phaser.Math.Linear(-shotgun.spreadRadians, shotgun.spreadRadians, t);
-      const pellet = this.add
-        .image(this.player.x + Math.cos(angle) * 24, this.player.y + Math.sin(angle) * 24, "pellet")
-        .setDepth(6);
-      this.heroProjectiles.add(pellet);
-      this.tweens.add({
-        targets: pellet,
-        x: this.player.x + Math.cos(angle) * shotgun.range,
-        y: this.player.y + Math.sin(angle) * shotgun.range,
-        alpha: 0.15,
-        duration,
-        ease: "Linear",
-        onComplete: () => pellet.destroy(),
-      });
-      this.applyPelletDamage(angle, shotgun.range, shotgun.damagePerPellet);
-    }
-
-    this.showMuzzleFlash(baseAngle);
-    this.cameras.main.shake(60, 0.0025);
-  }
-
-  getHeroShotgunProfile() {
-    const runtimeShotgun = gameConfig.runtime.hero.shotgun;
-    const shotgunStacks = this.hero.parameterStacks.shotgunWeapon ?? 0;
-    const reloadStacks = this.hero.parameterStacks.reload ?? 0;
-    return {
-      pellets: runtimeShotgun.pellets,
-      damagePerPellet:
-        runtimeShotgun.damagePerPellet +
-        shotgunStacks * gameConfig.parameters.shotgunWeapon.damageBonus,
-      spreadRadians: runtimeShotgun.spreadRadians,
-      range:
-        runtimeShotgun.range +
-        shotgunStacks * gameConfig.parameters.shotgunWeapon.radiusBonus,
-      cooldownMs: Math.max(
-        80,
-        runtimeShotgun.cooldownMs - reloadStacks * gameConfig.parameters.reload.cooldownReductionSeconds * 1000
-      ),
-      projectileSpeed:
-        runtimeShotgun.projectileSpeed +
-        shotgunStacks * gameConfig.parameters.shotgunWeapon.projectileSpeedBonus,
-    };
-  }
-
-  applyPelletDamage(angle, range, damage) {
-    this.enemies.getChildren().forEach((enemy) => {
-      if (!enemy.active) {
-        return;
-      }
-      if (!this.isTargetInsideShot(enemy, angle, range, 18)) {
-        return;
-      }
-
-      const inflictedDamage = Math.max(1, damage - (enemy.armorValue ?? 0));
-      const died = enemy.takeDamage(inflictedDamage);
-      if (died) {
-        this.kills += 1;
-      }
-    });
-  }
-
-  isTargetInsideShot(target, angle, range, hitRadius) {
-    const startX = this.player.x;
-    const startY = this.player.y;
-    const endX = startX + Math.cos(angle) * range;
-    const endY = startY + Math.sin(angle) * range;
-    const dx = endX - startX;
-    const dy = endY - startY;
-    const lengthSq = dx * dx + dy * dy;
-    const t = Phaser.Math.Clamp(((target.x - startX) * dx + (target.y - startY) * dy) / lengthSq, 0, 1);
-    const nearestX = startX + dx * t;
-    const nearestY = startY + dy * t;
-    return Phaser.Math.Distance.Between(nearestX, nearestY, target.x, target.y) <= hitRadius;
-  }
-
   handleEnemyTouch(player, enemy) {
-    if (this.isGameplayPaused) {
-      return;
-    }
-    if (!enemy.active || !enemy.canMove) {
-      return;
-    }
-    if (!enemy.canAttack(this.time.now)) {
-      return;
-    }
-
-    enemy.recordAttack(this.time.now);
-    player.healthPoints = Math.max(0, player.healthPoints - gameConfig.runtime.enemy.attackDamage);
-    this.cameras.main.shake(80, 0.003);
-
-    if (player.healthPoints <= 0) {
+    const heroDied = this.combatSystem.handleEnemyTouch(this, player, enemy);
+    if (heroDied) {
       this.scene.start("ResultScene", {
         kills: this.kills,
         survivedSeconds: Math.floor(this.time.now / 1000),
@@ -520,13 +411,13 @@ export class GameScene extends Phaser.Scene {
 
   spawnRegularEnemy() {
     const descriptor = this.session.currentWave.descriptor;
-    const point = this.getOffscreenSpawnPoint();
+    const point = this.spawnSystem.getOffscreenSpawnPoint(this.cameras.main.worldView);
     this.spawnEnemyActor(descriptor, point.x, point.y, false);
   }
 
   spawnBossForCurrentWave() {
     const descriptor = this.session.currentBoss;
-    const point = this.getNearHeroSpawnPoint();
+    const point = this.spawnSystem.getNearHeroSpawnPoint(this.player, gameConfig.runtime.world);
     this.spawnEnemyActor(descriptor, point.x, point.y, true);
     this.bossesSpawned += 1;
   }
@@ -543,10 +434,16 @@ export class GameScene extends Phaser.Scene {
       dropType: descriptor.isBoss ? "boss_burst" : "rolled_loot",
     };
 
-    const enemy = new Zombie(this, x, y, options);
-    enemy.descriptor = descriptor;
-    enemy.armorValue = descriptor.stats.armor;
-    enemy.setTexture(this.resolveEnemyTexture(descriptor.visuals.shape));
+    const enemy = new EnemyActor(this, x, y, this.resolveEnemyTexture(descriptor.visuals.shape), {
+      ...options,
+      descriptor,
+      armorValue: descriptor.stats.armor,
+      scale: descriptor.isBoss ? 1.35 : 1,
+      onDeath: (deadEnemy, deathPosition) => this.handleEnemyDeath(deadEnemy, deathPosition),
+    });
+    if (options.tint) {
+      enemy.setTint(options.tint);
+    }
     this.enemies.add(enemy);
 
     if (emerge) {
@@ -577,37 +474,6 @@ export class GameScene extends Phaser.Scene {
     return 0x7fb36b;
   }
 
-  getOffscreenSpawnPoint() {
-    const padding = gameConfig.runtime.enemy.offscreenSpawnPadding;
-    const bounds = this.cameras.main.worldView;
-    const side = Phaser.Math.Between(0, 3);
-
-    if (side === 0) {
-      return { x: bounds.left - padding, y: Phaser.Math.Between(bounds.top, bounds.bottom) };
-    }
-    if (side === 1) {
-      return { x: bounds.right + padding, y: Phaser.Math.Between(bounds.top, bounds.bottom) };
-    }
-    if (side === 2) {
-      return { x: Phaser.Math.Between(bounds.left, bounds.right), y: bounds.top - padding };
-    }
-
-    return { x: Phaser.Math.Between(bounds.left, bounds.right), y: bounds.bottom + padding };
-  }
-
-  getNearHeroSpawnPoint() {
-    const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-    const distance = Phaser.Math.Between(
-      gameConfig.runtime.enemy.bossSpawnMinDistance,
-      gameConfig.runtime.enemy.bossSpawnMaxDistance
-    );
-
-    return {
-      x: Phaser.Math.Clamp(this.player.x + Math.cos(angle) * distance, 80, gameConfig.runtime.world.width - 80),
-      y: Phaser.Math.Clamp(this.player.y + Math.sin(angle) * distance, 80, gameConfig.runtime.world.height - 80),
-    };
-  }
-
   showWaveBanner(text) {
     this.waveBannerText.setText(text);
     this.waveBannerText.setAlpha(1);
@@ -620,23 +486,11 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  showMuzzleFlash(angle) {
-    const flash = this.add.graphics();
-    const x = this.player.x + Math.cos(angle) * 46;
-    const y = this.player.y + Math.sin(angle) * 46;
-    flash.fillStyle(0xffd36a, 0.95);
-    flash.fillTriangle(
-      x,
-      y,
-      x + Math.cos(angle + 0.34) * 30,
-      y + Math.sin(angle + 0.34) * 30,
-      x + Math.cos(angle - 0.34) * 30,
-      y + Math.sin(angle - 0.34) * 30
-    );
-    this.time.delayedCall(70, () => flash.destroy());
+  handleEnemyDeath(enemy, deathPosition) {
+    this.spawnEnemyDrop(deathPosition.x, deathPosition.y, enemy.isBoss ? "boss_burst" : "rolled_loot");
   }
 
-  spawnZombieDrop(x, y, dropType) {
+  spawnEnemyDrop(x, y, dropType) {
     if (dropType === "boss_burst") {
       const pickups = this.lootSystem.createBossXpBurst(this.session.waveNumber);
       pickups.forEach((pickupData) => {
@@ -661,18 +515,7 @@ export class GameScene extends Phaser.Scene {
 
   createPickupActor(pickupData, x, y) {
     const texture = pickupData.type === "medkit" ? "medkit-pickup" : "xp-star";
-    const pickup = this.physics.add.sprite(x, y, texture);
-    pickup.body.allowGravity = false;
-    pickup.body.setImmovable(true);
-    pickup.setDepth(5);
-    pickup.pickupData = pickupData;
-    pickup.value = pickupData.value;
-    pickup.lifetimeSeconds = pickupData.lifetimeSeconds;
-    pickup.blinkStartSecondsRemaining = pickupData.blinkStartSecondsRemaining;
-    pickup.spawnedAt = this.time.now;
-    pickup.baseY = y;
-    pickup.floatOffset = Phaser.Math.Between(0, 600);
-    pickup.shadow = this.add.ellipse(x + 3, y + 11, 24, 10, 0x000000, 0.18).setDepth(4);
+    const pickup = new PickupActor(this, x, y, texture, pickupData);
     if (pickupData.type === "xp_star") {
       pickup.setScale(0.9);
     }
@@ -681,10 +524,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   destroyPickup(pickup) {
-    if (pickup.shadow) {
-      pickup.shadow.destroy();
-      pickup.shadow = null;
-    }
     pickup.destroy();
   }
 
@@ -699,7 +538,7 @@ export class GameScene extends Phaser.Scene {
       view.container.setScale(1);
     });
     this.levelUpOverlay.setVisible(true);
-    this.setGameplayPaused(true);
+    this.setGameplayPaused(true, "level_up");
   }
 
   selectUpgradeCard(index) {
@@ -716,7 +555,7 @@ export class GameScene extends Phaser.Scene {
     this.player.healthPoints = Math.min(this.player.healthPoints, this.player.maxHealth);
     this.currentUpgradeCards = null;
     this.levelUpOverlay.setVisible(false);
-    this.setGameplayPaused(false);
+    this.setGameplayPaused(false, null);
   }
 
   resolveHeroProgression(parameterStacks) {
@@ -735,8 +574,13 @@ export class GameScene extends Phaser.Scene {
     };
   }
 
-  setGameplayPaused(isPaused) {
+  setGameplayPaused(isPaused, reason) {
     this.isGameplayPaused = isPaused;
+    if (isPaused) {
+      this.session.setPauseReason(reason ?? "gameplay");
+    } else {
+      this.session.clearPauseReason();
+    }
 
     if (isPaused) {
       this.physics.world.pause();

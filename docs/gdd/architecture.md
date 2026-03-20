@@ -19,8 +19,12 @@
   Hero stats, current weapons, XP, level and upgrade application.
 - `src/entities/EnemyUnit.js`
   Generic enemy runtime entity. No hardcoded zombie-only logic beyond art hooks.
+- `src/entities/EnemyActor.js`
+  Phaser runtime actor for enemies: movement, HP bar, underground emerge animation, contact attack cooldown and death callback.
 - `src/entities/Pickup.js`
   Generic pickup entity with subtype handlers.
+- `src/entities/PickupActor.js`
+  Phaser runtime actor for pickup presentation, floating motion, blink window and cleanup.
 - `src/systems/WaveSystem.js`
   Owns wave number, wave timer, boss summon timing, wave title generation and 10% spawn acceleration per wave.
 - `src/systems/SpawnSystem.js`
@@ -86,10 +90,8 @@ Only one pause source should own input at a time. This is why pause state should
 ## Current Implementation Slice
 - `GameScene` is no longer a dashboard. It now hosts the first playable runtime slice driven by the new systems.
 - The following modules are already implemented and actively used by the scene:
-  `GameSession`, `EventBus`, `Hero`, `EnemyUnit`, `Pickup`, `EnemyFactory`, `WaveSystem`, `SpawnSystem`, `WeaponSystem`, `LootSystem`, `ProgressionSystem`.
+  `GameSession`, `EventBus`, `Hero`, `EnemyUnit`, `EnemyActor`, `Pickup`, `PickupActor`, `EnemyFactory`, `WaveSystem`, `SpawnSystem`, `CombatSystem`, `WeaponSystem`, `LootSystem`, `ProgressionSystem`.
 - Runtime features already connected:
   wave timer, wave title banner, regular enemy spawning, boss spawning, shotgun combat, enemy death drops, XP collection and level-up pause cards.
-- Transitional note:
-  the scene still temporarily reuses the legacy `Zombie` Phaser actor for movement, contact attacks and death hooks while the new dedicated runtime entity layer is being built.
 - The next phase is to split remaining in-scene runtime logic into dedicated systems:
-  `CombatSystem`, runtime pickup actor layer, enemy weapon execution, hero upgrade application service and richer parameter-driven visuals.
+  enemy weapon execution, hero upgrade application service, pickup collection service, pause-state coordinator and richer parameter-driven visuals.

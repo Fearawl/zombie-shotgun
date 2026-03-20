@@ -21,3 +21,7 @@
 - Added enemy shape textures from parameter dominance plus medkit and XP star pickup textures in `BootScene`.
 - Added pickup lifetime handling, blinking cleanup, boss XP burst scattering and hero XP collection in the new `GameScene`.
 - Added level-up pause overlay with 3 unique upgrade cards wired into the shared parameter pool.
+- Added `CombatSystem` and moved shotgun hit resolution plus contact damage out of `GameScene`.
+- Added dedicated runtime actors: `EnemyActor` and `PickupActor`.
+- Extended `SpawnSystem` to own off-screen and near-hero spawn point generation.
+- Removed the old `Zombie` actor from the active gameplay path. It now remains only as legacy reference code.
