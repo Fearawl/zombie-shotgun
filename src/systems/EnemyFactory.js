@@ -75,7 +75,7 @@ export class EnemyFactory {
 
     if (isBoss) {
       health *= this.config.boss.multiplier;
-      moveSpeed *= this.config.boss.multiplier;
+      moveSpeed *= this.config.boss.moveSpeedMultiplier;
       attackCooldownSeconds /= this.config.boss.multiplier;
       armor *= this.config.boss.multiplier;
     }

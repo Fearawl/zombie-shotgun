@@ -1,5 +1,5 @@
 export const gameConfig = {
-  version: "preproduction-007",
+  version: "preproduction-008",
   runtime: {
     world: {
       width: 2200,
@@ -94,6 +94,7 @@ export const gameConfig = {
   boss: {
     useSeparateRandomRoll: true,
     multiplier: 5,
+    moveSpeedMultiplier: 1,
   },
   parameters: {
     naming: {
