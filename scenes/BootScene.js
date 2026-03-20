@@ -32,10 +32,12 @@ export class BootScene extends Phaser.Scene {
 
   makeCircleTexture(key, size, fillColor, strokeColor) {
     const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    const lineWidth = Math.max(1, Math.min(4, Math.floor(size * 0.18)));
+    const radius = Math.max(1, size / 2 - lineWidth);
     graphics.fillStyle(fillColor, 1);
-    graphics.lineStyle(4, strokeColor, 1);
-    graphics.fillCircle(size / 2, size / 2, size / 2 - 4);
-    graphics.strokeCircle(size / 2, size / 2, size / 2 - 4);
+    graphics.lineStyle(lineWidth, strokeColor, 1);
+    graphics.fillCircle(size / 2, size / 2, radius);
+    graphics.strokeCircle(size / 2, size / 2, radius);
     graphics.generateTexture(key, size, size);
     graphics.destroy();
   }
