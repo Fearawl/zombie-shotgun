@@ -196,7 +196,7 @@ export class CombatSystem {
       damage: weapon.damage,
       texture: "pistol-bullet",
       scale: 0.9,
-      tint: 0xf6efc1,
+      tint: enemy.weaponVfxTint,
     });
   }
 
@@ -215,7 +215,7 @@ export class CombatSystem {
         damage: weapon.damage,
         texture: "pellet",
         scale: 0.9,
-        tint: 0xffcb75,
+        tint: enemy.weaponVfxTint,
       });
     }
   }
@@ -236,17 +236,24 @@ export class CombatSystem {
         ease: "Sine.Out",
         onComplete: () => {
           orb.destroy();
-          this.resolveEnemyGrenadeExplosion(scene, targetX, targetY, weapon.damage, Math.max(28, weapon.radius * 0.34));
+          this.resolveEnemyGrenadeExplosion(
+            scene,
+            targetX,
+            targetY,
+            weapon.damage,
+            Math.max(28, weapon.radius * 0.34),
+            enemy.weaponVfxTint
+          );
         },
       });
     }
   }
 
-  resolveEnemyGrenadeExplosion(scene, x, y, damage, radius) {
+  resolveEnemyGrenadeExplosion(scene, x, y, damage, radius, tint) {
     const smoke = scene.add.graphics().setDepth(6);
-    smoke.fillStyle(0xd6dadd, 0.75);
+    smoke.fillStyle(tint, 0.75);
     smoke.fillCircle(x, y, radius * 0.4);
-    smoke.fillStyle(0xbec6cb, 0.45);
+    smoke.fillStyle(tint, 0.45);
     smoke.fillCircle(x + 12, y - 8, radius * 0.32);
     smoke.fillCircle(x - 10, y + 6, radius * 0.28);
     scene.tweens.add({
@@ -324,7 +331,7 @@ export class CombatSystem {
   showMeleeSwing(scene, enemy, hero) {
     const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, hero.x, hero.y);
     const arc = scene.add.graphics().setDepth(6);
-    arc.lineStyle(3, 0xf1cf58, 0.95);
+    arc.lineStyle(3, enemy.weaponVfxTint, 0.95);
     arc.beginPath();
     arc.arc(enemy.x, enemy.y, 24, angle - 0.7, angle + 0.7, false);
     arc.strokePath();

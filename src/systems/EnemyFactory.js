@@ -1,9 +1,10 @@
 import { EnemyUnit } from "../entities/EnemyUnit.js";
 
 export class EnemyFactory {
-  constructor(config, weaponSystem) {
+  constructor(config, weaponSystem, presentationSystem) {
     this.config = config;
     this.weaponSystem = weaponSystem;
+    this.presentationSystem = presentationSystem;
     this.parameterKeys = [
       "vitality",
       "speed",
@@ -36,7 +37,7 @@ export class EnemyFactory {
     const parameterStacks = this.rollParameterStacks(parameterRolls);
     const stats = this.buildStats(parameterStacks, isBoss);
     const weaponProfiles = this.weaponSystem.buildWeaponProfiles(parameterStacks);
-    const visuals = this.buildVisuals(parameterStacks);
+    const visuals = this.buildVisuals(parameterStacks, isBoss);
     const titleParts = this.buildTitleParts(parameterStacks);
 
     return new EnemyUnit({
@@ -88,14 +89,9 @@ export class EnemyFactory {
     };
   }
 
-  buildVisuals(parameterStacks) {
+  buildVisuals(parameterStacks, isBoss) {
     const dominant = this.weaponSystem.getDominantWeapon(parameterStacks);
-    return {
-      baseColor: this.config.enemy.baseVisual.color,
-      outlineColor: this.config.enemy.baseVisual.outlineColor,
-      weaponVfxColor: this.config.enemy.baseVisual.weaponVfxColor,
-      shape: dominant.shape,
-    };
+    return this.presentationSystem.buildEnemyVisuals(parameterStacks, dominant.shape, isBoss);
   }
 
   buildTitleParts(parameterStacks) {

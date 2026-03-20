@@ -34,3 +34,6 @@
 - Added enemy projectile travel, grenade burst resolution and full pause of tweens during modal gameplay pauses.
 - Reworked level-up card input to use dedicated overlay hit-zones above the modal container, fixing unreliable card clicks.
 - Split boss move speed scaling into a dedicated config value and set it to `1`, so bosses keep boss-tier stats without sprinting unnaturally fast.
+- Connected `PresentationSystem` to runtime enemy visuals and HUD formatting.
+- Enemy vitality now browns body tint, armor shifts outline toward cyan, and reload lightens weapon VFX color.
+- Enemy melee/projectile/grenade effects now inherit the generated weapon VFX tint for better wave readability.

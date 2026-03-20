@@ -8,6 +8,7 @@ import { CombatSystem } from "../src/systems/CombatSystem.js";
 import { HeroBuildSystem } from "../src/systems/HeroBuildSystem.js";
 import { LootSystem } from "../src/systems/LootSystem.js";
 import { PickupSystem } from "../src/systems/PickupSystem.js";
+import { PresentationSystem } from "../src/systems/PresentationSystem.js";
 import { ProgressionSystem } from "../src/systems/ProgressionSystem.js";
 import { SpawnSystem } from "../src/systems/SpawnSystem.js";
 import { WaveSystem } from "../src/systems/WaveSystem.js";
@@ -35,7 +36,8 @@ export class GameScene extends Phaser.Scene {
     this.hero = new Hero(gameConfig);
     this.weaponSystem = new WeaponSystem(gameConfig);
     this.heroBuildSystem = new HeroBuildSystem(gameConfig, this.weaponSystem);
-    this.enemyFactory = new EnemyFactory(gameConfig, this.weaponSystem);
+    this.presentationSystem = new PresentationSystem(gameConfig);
+    this.enemyFactory = new EnemyFactory(gameConfig, this.weaponSystem, this.presentationSystem);
     this.waveSystem = new WaveSystem(gameConfig, this.eventBus, this.enemyFactory);
     this.spawnSystem = new SpawnSystem(gameConfig);
     this.combatSystem = new CombatSystem(gameConfig);
@@ -335,15 +337,11 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.heroUiText.setText(
-      [
-        `HP: ${this.player.healthPoints}/${this.player.maxHealth}`,
-        `LV: ${this.session.heroLevel}   XP: ${this.session.heroXp}/${this.session.nextLevelXp}`,
-        `Kills: ${this.kills}`,
-        `Bosses: ${this.bossesSpawned}`,
-      ].join("\n")
+      this.presentationSystem.formatHeroHud(this.player, this.session, this.kills, this.bossesSpawned)
     );
-
-    this.waveCounterText.setText(`Wave ${wave.waveNumber} | ${Math.max(0, Math.ceil(this.waveRemainingSeconds))}s`);
+    this.waveCounterText.setText(
+      this.presentationSystem.formatWaveCounter(wave.waveNumber, this.waveRemainingSeconds)
+    );
   }
 
   updateEnemyCombat() {
@@ -429,7 +427,9 @@ export class GameScene extends Phaser.Scene {
       moveSpeed: descriptor.stats.moveSpeed * 12,
       aggroRadius: gameConfig.runtime.enemy.defaultAggroRadius,
       attackCooldownMs: descriptor.stats.attackCooldownSeconds * 1000,
-      tint: this.resolveEnemyTint(descriptor),
+      tint: descriptor.visuals.bodyTint,
+      outlineTint: descriptor.visuals.outlineTint,
+      weaponVfxTint: descriptor.visuals.weaponVfxTint,
       dropType: descriptor.isBoss ? "boss_burst" : "rolled_loot",
     };
 
@@ -458,19 +458,6 @@ export class GameScene extends Phaser.Scene {
       square: "enemy-square",
     };
     return map[shape] ?? "enemy-circle";
-  }
-
-  resolveEnemyTint(descriptor) {
-    if (descriptor.isBoss) {
-      return 0xc84a42;
-    }
-    if (descriptor.parameterStacks.armor) {
-      return 0x86a7bc;
-    }
-    if (descriptor.parameterStacks.vitality) {
-      return 0x8c7b58;
-    }
-    return 0x7fb36b;
   }
 
   showWaveBanner(text) {
