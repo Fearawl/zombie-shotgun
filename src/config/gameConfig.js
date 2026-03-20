@@ -1,0 +1,133 @@
+export const gameConfig = {
+  version: "preproduction-001",
+  progression: {
+    waveDurationSeconds: 30,
+    spawnAccelerationPerWave: 0.1,
+    bossMultiplier: 5,
+    randomParametersPerWaveFormula: "wave_number",
+    xp: {
+      firstLevelCost: 30,
+      levelCostMultiplier: 2,
+      bossStarXpValue: 10,
+      smallStarXpValue: 10,
+    },
+  },
+  hero: {
+    base: {
+      health: 10,
+      moveSpeed: 10,
+    },
+    levelUp: {
+      cardsPerLevel: 3,
+      pauseOnLevelUp: true,
+    },
+  },
+  enemy: {
+    baseVisual: {
+      color: "#6fb26d",
+      outlineColor: "#6fb26d",
+      shape: "circle",
+      weaponVfxColor: "#f1cf58",
+    },
+    baseStats: {
+      health: 5,
+      moveSpeed: 5,
+      attackCooldownSeconds: 2,
+    },
+    baseWeapons: {
+      melee: {
+        damage: 1,
+        radius: 10,
+        cooldownSeconds: 2,
+        vfx: "half_arc",
+      },
+    },
+    spawn: {
+      preferOffscreenSpawn: true,
+      undergroundSpawnTypes: ["zombie", "boss"],
+      bossSpawnNearPlayer: true,
+    },
+    drops: {
+      medkitChance: 0.02,
+      medkitHealPercent: 0.25,
+      xpStarChance: 0.1,
+      bossStarsPerWaveRule: "wave_number",
+      bossStarScatterRadius: 48,
+    },
+  },
+  parameters: {
+    vitality: {
+      type: "stat",
+      healthBonus: 5,
+      namingTiers: ["хилые", "живучие", "бессмертные X"],
+      visualEffect: "base_color_browner",
+    },
+    speed: {
+      type: "stat",
+      moveSpeedBonus: 5,
+      namingTiers: ["медленные", "шустрые", "скоростные X"],
+      visualEffect: "none",
+    },
+    armor: {
+      type: "defense",
+      incomingDamageReduction: 1,
+      namingTiers: ["толстокожие", "бронявые", "непробиваемые X"],
+      visualEffect: "outline_toward_cyan",
+    },
+    reload: {
+      type: "cadence",
+      cooldownReductionSeconds: 0.2,
+      namingTiers: ["неуклюжие", "ловкие", "юркие X"],
+      visualEffect: "weapon_vfx_whitens",
+    },
+    meleeWeapon: {
+      type: "weapon",
+      weaponId: "melee",
+      damageBonus: 3,
+      namingTiers: ["безоружные", "бьющие", "накаутирующие X"],
+      dominantShape: "circle",
+    },
+    pistolWeapon: {
+      type: "weapon",
+      weaponId: "pistol",
+      damageBonus: 5,
+      radiusBonus: 50,
+      projectileSpeedBonus: 10,
+      namingTiers: ["метающие", "стреляющие", "расстреливающие X"],
+      dominantShape: "oval",
+      vfx: "three_lines",
+    },
+    shotgunWeapon: {
+      type: "weapon",
+      weaponId: "shotgun",
+      pellets: 8,
+      damageBonus: 2,
+      radiusBonus: 20,
+      projectileSpeedBonus: 10,
+      namingTiers: ["дробьющие", "картечьные", "пушечные X"],
+      dominantShape: "triangle",
+      vfx: "cone",
+    },
+    grenadeWeapon: {
+      type: "weapon",
+      weaponId: "grenade",
+      damageBonus: 10,
+      grenadesPerVolleyBonus: 1,
+      radiusBonus: 20,
+      namingTiers: ["гранатные", "миномётные", "ядерные X"],
+      dominantShape: "square",
+      vfx: "smoke_circles",
+    },
+  },
+  naming: {
+    order: ["vitality", "speed", "armor", "reload", "weapon"],
+    wavePrefix: "Wave",
+    unitNoun: "zombies",
+  },
+  ui: {
+    showWaveBanner: true,
+    showWaveCounterTop: true,
+    showHealthValueInsideBar: true,
+    showDevParameterOverlay: true,
+  },
+};
