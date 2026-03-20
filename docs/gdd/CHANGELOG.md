@@ -29,3 +29,6 @@
 - Added `PickupSystem` for pickup spawn, lifetime updates, collection effects and boss star burst handling.
 - Reduced `GameScene` further to wiring, UI and wave orchestration responsibilities.
 - Fixed level-up overlay render order so upgrade cards stay above the modal background and remain clickable.
+- Added active enemy weapon execution from generated `weaponProfiles`.
+- Enemies can now use melee, pistol, shotgun and grenade attacks in parallel on their own cooldowns.
+- Added enemy projectile travel, grenade burst resolution and full pause of tweens during modal gameplay pauses.

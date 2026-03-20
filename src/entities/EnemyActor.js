@@ -14,6 +14,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
     this.aggroRadius = options.aggroRadius ?? 99999;
     this.attackCooldownMs = options.attackCooldownMs ?? 2000;
     this.lastAttackAt = -this.attackCooldownMs;
+    this.weaponCooldowns = {};
     this.armorValue = options.armorValue ?? 0;
     this.baseTint = options.tint ?? null;
     this.canMove = true;
@@ -164,6 +165,15 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
 
   recordAttack(timeNow) {
     this.lastAttackAt = timeNow;
+  }
+
+  canUseWeapon(weaponId, timeNow, cooldownMs) {
+    const lastFiredAt = this.weaponCooldowns[weaponId] ?? -cooldownMs;
+    return timeNow - lastFiredAt >= cooldownMs;
+  }
+
+  recordWeaponUse(weaponId, timeNow) {
+    this.weaponCooldowns[weaponId] = timeNow;
   }
 
   drawHealthBar() {

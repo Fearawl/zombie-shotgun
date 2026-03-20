@@ -107,6 +107,204 @@ export class CombatSystem {
     return player.healthPoints <= 0;
   }
 
+  updateEnemyAttacks(scene) {
+    if (scene.isGameplayPaused || !scene.player?.active) {
+      return false;
+    }
+
+    let heroDied = false;
+    scene.enemies.getChildren().forEach((enemy) => {
+      if (!enemy.active || !enemy.canMove || heroDied) {
+        return;
+      }
+      heroDied = this.executeEnemyWeapons(scene, enemy) || heroDied;
+    });
+    return heroDied;
+  }
+
+  executeEnemyWeapons(scene, enemy) {
+    const profiles = enemy.descriptor?.weaponProfiles ?? {};
+    const hero = scene.player;
+    const distanceToHero = Phaser.Math.Distance.Between(enemy.x, enemy.y, hero.x, hero.y);
+
+    for (const weapon of Object.values(profiles)) {
+      const cooldownMs = Math.max(
+        120,
+        ((weapon.cooldownSeconds ?? enemy.attackCooldownMs / 1000) * 1000) /
+          Math.max(0.2, scene.enemyAttackCadenceScale ?? 1)
+      );
+      if (!enemy.canUseWeapon(weapon.id, scene.time.now, cooldownMs)) {
+        continue;
+      }
+
+      if (weapon.id === "melee") {
+        if (distanceToHero > weapon.radius) {
+          continue;
+        }
+        enemy.recordWeaponUse(weapon.id, scene.time.now);
+        if (this.applyDamageToHero(scene, weapon.damage)) {
+          return true;
+        }
+        this.showMeleeSwing(scene, enemy, hero);
+        continue;
+      }
+
+      if (weapon.id === "pistol") {
+        if (distanceToHero > weapon.radius) {
+          continue;
+        }
+        enemy.recordWeaponUse(weapon.id, scene.time.now);
+        this.fireEnemyPistol(scene, enemy, weapon);
+        continue;
+      }
+
+      if (weapon.id === "shotgun") {
+        if (distanceToHero > weapon.radius) {
+          continue;
+        }
+        enemy.recordWeaponUse(weapon.id, scene.time.now);
+        this.fireEnemyShotgun(scene, enemy, weapon);
+        continue;
+      }
+
+      if (weapon.id === "grenade") {
+        if (distanceToHero > weapon.radius) {
+          continue;
+        }
+        enemy.recordWeaponUse(weapon.id, scene.time.now);
+        this.throwEnemyGrenades(scene, enemy, weapon);
+      }
+    }
+
+    return false;
+  }
+
+  applyDamageToHero(scene, damage) {
+    scene.player.healthPoints = Math.max(0, scene.player.healthPoints - Math.max(1, Math.round(damage)));
+    scene.cameras.main.shake(70, 0.0024);
+    return scene.player.healthPoints <= 0;
+  }
+
+  fireEnemyPistol(scene, enemy, weapon) {
+    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, scene.player.x, scene.player.y);
+    this.spawnEnemyProjectile(scene, {
+      x: enemy.x + Math.cos(angle) * 18,
+      y: enemy.y + Math.sin(angle) * 18,
+      angle,
+      speed: 160 + (weapon.projectileSpeed ?? 0) * 8,
+      range: weapon.radius,
+      damage: weapon.damage,
+      texture: "pistol-bullet",
+      scale: 0.9,
+      tint: 0xf6efc1,
+    });
+  }
+
+  fireEnemyShotgun(scene, enemy, weapon) {
+    const baseAngle = Phaser.Math.Angle.Between(enemy.x, enemy.y, scene.player.x, scene.player.y);
+    const pellets = weapon.pellets ?? 8;
+    for (let i = 0; i < pellets; i += 1) {
+      const t = pellets === 1 ? 0.5 : i / (pellets - 1);
+      const angle = baseAngle + Phaser.Math.Linear(-0.32, 0.32, t);
+      this.spawnEnemyProjectile(scene, {
+        x: enemy.x + Math.cos(angle) * 18,
+        y: enemy.y + Math.sin(angle) * 18,
+        angle,
+        speed: 150 + (weapon.projectileSpeed ?? 0) * 7,
+        range: weapon.radius,
+        damage: weapon.damage,
+        texture: "pellet",
+        scale: 0.9,
+        tint: 0xffcb75,
+      });
+    }
+  }
+
+  throwEnemyGrenades(scene, enemy, weapon) {
+    const volleyCount = Math.max(1, weapon.grenadesPerVolley ?? 1);
+    for (let i = 0; i < volleyCount; i += 1) {
+      const spreadX = Phaser.Math.Between(-36, 36);
+      const spreadY = Phaser.Math.Between(-36, 36);
+      const targetX = scene.player.x + spreadX;
+      const targetY = scene.player.y + spreadY;
+      const orb = scene.add.image(enemy.x, enemy.y - 4, "grenade-orb").setDepth(6).setScale(0.75);
+      scene.tweens.add({
+        targets: orb,
+        x: targetX,
+        y: targetY,
+        duration: 520,
+        ease: "Sine.Out",
+        onComplete: () => {
+          orb.destroy();
+          this.resolveEnemyGrenadeExplosion(scene, targetX, targetY, weapon.damage, Math.max(28, weapon.radius * 0.34));
+        },
+      });
+    }
+  }
+
+  resolveEnemyGrenadeExplosion(scene, x, y, damage, radius) {
+    const smoke = scene.add.graphics().setDepth(6);
+    smoke.fillStyle(0xd6dadd, 0.75);
+    smoke.fillCircle(x, y, radius * 0.4);
+    smoke.fillStyle(0xbec6cb, 0.45);
+    smoke.fillCircle(x + 12, y - 8, radius * 0.32);
+    smoke.fillCircle(x - 10, y + 6, radius * 0.28);
+    scene.tweens.add({
+      targets: smoke,
+      alpha: 0,
+      scaleX: 1.35,
+      scaleY: 1.35,
+      duration: 260,
+      onComplete: () => smoke.destroy(),
+    });
+
+    if (Phaser.Math.Distance.Between(x, y, scene.player.x, scene.player.y) <= radius) {
+      this.applyDamageToHero(scene, damage);
+    }
+  }
+
+  spawnEnemyProjectile(scene, { x, y, angle, speed, range, damage, texture, scale, tint }) {
+    const projectile = scene.physics.add.image(x, y, texture);
+    projectile.setDepth(6);
+    projectile.setScale(scale ?? 1);
+    projectile.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+    projectile.body.allowGravity = false;
+    projectile.damage = damage;
+    projectile.spawnX = x;
+    projectile.spawnY = y;
+    projectile.maxRange = range;
+    projectile.isEnemyProjectile = true;
+    if (tint) {
+      projectile.setTint(tint);
+    }
+    scene.enemyProjectiles.add(projectile);
+    return projectile;
+  }
+
+  updateEnemyProjectiles(scene) {
+    let heroDied = false;
+    scene.enemyProjectiles.getChildren().forEach((projectile) => {
+      if (!projectile.active || heroDied) {
+        return;
+      }
+      const travelled = Phaser.Math.Distance.Between(
+        projectile.spawnX,
+        projectile.spawnY,
+        projectile.x,
+        projectile.y
+      );
+      if (travelled >= projectile.maxRange) {
+        projectile.destroy();
+        return;
+      }
+      if (Phaser.Math.Distance.Between(projectile.x, projectile.y, scene.player.x, scene.player.y) <= 18) {
+        projectile.destroy();
+        heroDied = this.applyDamageToHero(scene, projectile.damage) || heroDied;
+      }
+    });
+    return heroDied;
+  }
+
   showMuzzleFlash(scene, angle) {
     const flash = scene.add.graphics();
     const x = scene.player.x + Math.cos(angle) * 46;
@@ -121,5 +319,20 @@ export class CombatSystem {
       y + Math.sin(angle - 0.34) * 30
     );
     scene.time.delayedCall(70, () => flash.destroy());
+  }
+
+  showMeleeSwing(scene, enemy, hero) {
+    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, hero.x, hero.y);
+    const arc = scene.add.graphics().setDepth(6);
+    arc.lineStyle(3, 0xf1cf58, 0.95);
+    arc.beginPath();
+    arc.arc(enemy.x, enemy.y, 24, angle - 0.7, angle + 0.7, false);
+    arc.strokePath();
+    scene.tweens.add({
+      targets: arc,
+      alpha: 0,
+      duration: 120,
+      onComplete: () => arc.destroy(),
+    });
   }
 }

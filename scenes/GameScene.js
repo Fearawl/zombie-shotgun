@@ -262,6 +262,7 @@ export class GameScene extends Phaser.Scene {
     this.updateHeroHealthBar();
     this.updatePickups();
     this.updateUi();
+    this.updateEnemyCombat();
     this.tickWaveTimer();
   }
 
@@ -338,14 +339,23 @@ export class GameScene extends Phaser.Scene {
     this.waveCounterText.setText(`Wave ${wave.waveNumber} | ${Math.max(0, Math.ceil(this.waveRemainingSeconds))}s`);
   }
 
+  updateEnemyCombat() {
+    const projectileKill = this.combatSystem.updateEnemyProjectiles(this);
+    if (projectileKill) {
+      this.handleHeroDeath();
+      return;
+    }
+
+    const attackKill = this.combatSystem.updateEnemyAttacks(this);
+    if (attackKill) {
+      this.handleHeroDeath();
+    }
+  }
+
   handleEnemyTouch(player, enemy) {
     const heroDied = this.combatSystem.handleEnemyTouch(this, player, enemy);
     if (heroDied) {
-      this.scene.start("ResultScene", {
-        kills: this.kills,
-        survivedSeconds: Math.floor(this.time.now / 1000),
-        bossesSpawned: this.bossesSpawned,
-      });
+      this.handleHeroDeath();
     }
   }
 
@@ -483,6 +493,14 @@ export class GameScene extends Phaser.Scene {
     pickup.destroy();
   }
 
+  handleHeroDeath() {
+    this.scene.start("ResultScene", {
+      kills: this.kills,
+      survivedSeconds: Math.floor(this.time.now / 1000),
+      bossesSpawned: this.bossesSpawned,
+    });
+  }
+
   showLevelUpChoices() {
     this.currentUpgradeCards = this.progressionSystem.createUpgradeOffer();
     this.levelCardViews.forEach((view, index) => {
@@ -524,6 +542,7 @@ export class GameScene extends Phaser.Scene {
 
     if (isPaused) {
       this.physics.world.pause();
+      this.tweens.pauseAll();
       if (this.waveSpawnEvent) {
         this.waveSpawnEvent.paused = true;
       }
@@ -536,6 +555,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.physics.world.resume();
+    this.tweens.resumeAll();
     if (this.waveSpawnEvent) {
       this.waveSpawnEvent.paused = false;
     }

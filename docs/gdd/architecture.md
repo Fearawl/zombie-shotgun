@@ -96,6 +96,6 @@ Only one pause source should own input at a time. This is why pause state should
 - The following modules are already implemented and actively used by the scene:
   `GameSession`, `EventBus`, `Hero`, `EnemyUnit`, `EnemyActor`, `Pickup`, `PickupActor`, `EnemyFactory`, `WaveSystem`, `SpawnSystem`, `CombatSystem`, `HeroBuildSystem`, `WeaponSystem`, `LootSystem`, `PickupSystem`, `ProgressionSystem`.
 - Runtime features already connected:
-  wave timer, wave title banner, regular enemy spawning, boss spawning, shotgun combat, enemy death drops, XP collection and level-up pause cards.
+  wave timer, wave title banner, regular enemy spawning, boss spawning, shotgun combat, enemy death drops, XP collection, level-up pause cards and generated enemy weapon execution.
 - The next phase is to split remaining in-scene runtime logic into dedicated systems:
-  enemy weapon execution, pause-state coordinator, HUD presenter and richer parameter-driven visuals.
+  pause-state coordinator, HUD presenter, enemy presentation styling and richer parameter-driven visuals.
