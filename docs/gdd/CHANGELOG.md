@@ -25,3 +25,6 @@
 - Added dedicated runtime actors: `EnemyActor` and `PickupActor`.
 - Extended `SpawnSystem` to own off-screen and near-hero spawn point generation.
 - Removed the old `Zombie` actor from the active gameplay path. It now remains only as legacy reference code.
+- Added `HeroBuildSystem` for hero stat/weapon recomposition after upgrades.
+- Added `PickupSystem` for pickup spawn, lifetime updates, collection effects and boss star burst handling.
+- Reduced `GameScene` further to wiring, UI and wave orchestration responsibilities.

@@ -33,10 +33,14 @@
   Builds enemy specs from base stats + `waveNumber` rolled bonus parameters. Also builds boss specs from a separate boss roll + boss multiplier.
 - `src/systems/CombatSystem.js`
   Hit resolution, outgoing/incoming damage, armor, cooldowns, projectile ownership and friendly-fire rules.
+- `src/systems/HeroBuildSystem.js`
+  Rebuilds hero stats and weapon profiles after level-up choices.
 - `src/systems/WeaponSystem.js`
   Shared logic for melee, pistol, shotgun and grenade behaviors for both hero and enemies.
 - `src/systems/LootSystem.js`
   Medkits, XP stars, boss star burst, pickup lifetime rules.
+- `src/systems/PickupSystem.js`
+  Runtime pickup spawn, floating/blinking presentation updates and pickup application rules.
 - `src/systems/ProgressionSystem.js`
   XP thresholds, level-up pause, upgrade card generation and application.
 - `src/systems/PresentationSystem.js`
@@ -90,8 +94,8 @@ Only one pause source should own input at a time. This is why pause state should
 ## Current Implementation Slice
 - `GameScene` is no longer a dashboard. It now hosts the first playable runtime slice driven by the new systems.
 - The following modules are already implemented and actively used by the scene:
-  `GameSession`, `EventBus`, `Hero`, `EnemyUnit`, `EnemyActor`, `Pickup`, `PickupActor`, `EnemyFactory`, `WaveSystem`, `SpawnSystem`, `CombatSystem`, `WeaponSystem`, `LootSystem`, `ProgressionSystem`.
+  `GameSession`, `EventBus`, `Hero`, `EnemyUnit`, `EnemyActor`, `Pickup`, `PickupActor`, `EnemyFactory`, `WaveSystem`, `SpawnSystem`, `CombatSystem`, `HeroBuildSystem`, `WeaponSystem`, `LootSystem`, `PickupSystem`, `ProgressionSystem`.
 - Runtime features already connected:
   wave timer, wave title banner, regular enemy spawning, boss spawning, shotgun combat, enemy death drops, XP collection and level-up pause cards.
 - The next phase is to split remaining in-scene runtime logic into dedicated systems:
-  enemy weapon execution, hero upgrade application service, pickup collection service, pause-state coordinator and richer parameter-driven visuals.
+  enemy weapon execution, pause-state coordinator, HUD presenter and richer parameter-driven visuals.

@@ -3,10 +3,11 @@ import { EventBus } from "../src/core/EventBus.js";
 import { GameSession } from "../src/core/GameSession.js";
 import { Hero } from "../src/entities/Hero.js";
 import { EnemyActor } from "../src/entities/EnemyActor.js";
-import { PickupActor } from "../src/entities/PickupActor.js";
 import { EnemyFactory } from "../src/systems/EnemyFactory.js";
 import { CombatSystem } from "../src/systems/CombatSystem.js";
+import { HeroBuildSystem } from "../src/systems/HeroBuildSystem.js";
 import { LootSystem } from "../src/systems/LootSystem.js";
+import { PickupSystem } from "../src/systems/PickupSystem.js";
 import { ProgressionSystem } from "../src/systems/ProgressionSystem.js";
 import { SpawnSystem } from "../src/systems/SpawnSystem.js";
 import { WaveSystem } from "../src/systems/WaveSystem.js";
@@ -33,11 +34,13 @@ export class GameScene extends Phaser.Scene {
     this.session = new GameSession(gameConfig);
     this.hero = new Hero(gameConfig);
     this.weaponSystem = new WeaponSystem(gameConfig);
+    this.heroBuildSystem = new HeroBuildSystem(gameConfig, this.weaponSystem);
     this.enemyFactory = new EnemyFactory(gameConfig, this.weaponSystem);
     this.waveSystem = new WaveSystem(gameConfig, this.eventBus, this.enemyFactory);
     this.spawnSystem = new SpawnSystem(gameConfig);
     this.combatSystem = new CombatSystem(gameConfig);
     this.lootSystem = new LootSystem(gameConfig);
+    this.pickupSystem = new PickupSystem(gameConfig, this.lootSystem);
     this.progressionSystem = new ProgressionSystem(gameConfig);
 
     this.eventBus.on("wave:created", (wave) => {
@@ -314,16 +317,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   updatePickups() {
-    this.pickups.getChildren().forEach((pickup) => {
-      if (!pickup.active) {
-        return;
-      }
-
-      const isAlive = pickup.updatePresentation(this.time.now);
-      if (!isAlive) {
-        this.destroyPickup(pickup);
-      }
-    });
+    this.pickupSystem.updateActors(this.time.now, this.pickups, (pickup) => this.destroyPickup(pickup));
   }
 
   updateUi() {
@@ -356,22 +350,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   handlePickupCollect(player, pickup) {
-    if (!pickup.active || this.isGameplayPaused) {
-      return;
+    const result = this.pickupSystem.collect(this, player, pickup, this.session);
+    if (result.leveledUp) {
+      this.showLevelUpChoices();
     }
-
-    if (pickup.pickupData.type === "medkit") {
-      const healAmount = Math.max(1, Math.round(player.maxHealth * pickup.value));
-      player.healthPoints = Math.min(player.maxHealth, player.healthPoints + healAmount);
-    }
-
-    if (pickup.pickupData.type === "xp_star") {
-      const leveledUp = this.session.addHeroXp(pickup.value);
-      if (leveledUp) {
-        this.showLevelUpChoices();
-      }
-    }
-
     this.destroyPickup(pickup);
   }
 
@@ -487,40 +469,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   handleEnemyDeath(enemy, deathPosition) {
-    this.spawnEnemyDrop(deathPosition.x, deathPosition.y, enemy.isBoss ? "boss_burst" : "rolled_loot");
-  }
-
-  spawnEnemyDrop(x, y, dropType) {
-    if (dropType === "boss_burst") {
-      const pickups = this.lootSystem.createBossXpBurst(this.session.waveNumber);
-      pickups.forEach((pickupData) => {
-        const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-        const distance = Phaser.Math.FloatBetween(12, gameConfig.enemy.drops.bossStarScatterRadius);
-        this.createPickupActor(pickupData, x + Math.cos(angle) * distance, y + Math.sin(angle) * distance);
-      });
-      return;
-    }
-
-    if (Math.random() < gameConfig.enemy.drops.medkitChance) {
-      this.createPickupActor(this.lootSystem.createMedkitPickup(), x, y);
-    }
-    if (Math.random() < gameConfig.enemy.drops.xpStarChance) {
-      this.createPickupActor(
-        this.lootSystem.createXpPickup(),
-        x + Phaser.Math.Between(-18, 18),
-        y + Phaser.Math.Between(-18, 18)
-      );
-    }
-  }
-
-  createPickupActor(pickupData, x, y) {
-    const texture = pickupData.type === "medkit" ? "medkit-pickup" : "xp-star";
-    const pickup = new PickupActor(this, x, y, texture, pickupData);
-    if (pickupData.type === "xp_star") {
-      pickup.setScale(0.9);
-    }
-    this.pickups.add(pickup);
-    return pickup;
+    this.pickupSystem.spawnDrop(
+      this,
+      this.pickups,
+      this.session.waveNumber,
+      deathPosition.x,
+      deathPosition.y,
+      enemy.isBoss ? "boss_burst" : "rolled_loot"
+    );
   }
 
   destroyPickup(pickup) {
@@ -547,7 +503,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     const previousMaxHealth = this.player.maxHealth;
-    this.hero.applyUpgrade(this.currentUpgradeCards[index].key, (stacks) => this.resolveHeroProgression(stacks));
+    this.heroBuildSystem.applyUpgrade(this.hero, this.currentUpgradeCards[index].key);
     this.player.maxHealth = this.hero.stats.health;
     if (this.player.maxHealth > previousMaxHealth) {
       this.player.healthPoints += this.player.maxHealth - previousMaxHealth;
@@ -556,22 +512,6 @@ export class GameScene extends Phaser.Scene {
     this.currentUpgradeCards = null;
     this.levelUpOverlay.setVisible(false);
     this.setGameplayPaused(false, null);
-  }
-
-  resolveHeroProgression(parameterStacks) {
-    const stats = {
-      health:
-        gameConfig.hero.base.health +
-        (parameterStacks.vitality ?? 0) * gameConfig.parameters.vitality.healthBonus,
-      moveSpeed:
-        gameConfig.hero.base.moveSpeed +
-        (parameterStacks.speed ?? 0) * gameConfig.parameters.speed.moveSpeedBonus,
-    };
-
-    return {
-      stats,
-      weaponProfiles: this.weaponSystem.buildWeaponProfiles(parameterStacks),
-    };
   }
 
   setGameplayPaused(isPaused, reason) {
