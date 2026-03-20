@@ -1,0 +1,123 @@
+<svg width="1400" height="900" viewBox="0 0 1400 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="700" y1="0" x2="700" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#163244"/>
+      <stop offset="0.55" stop-color="#0A1821"/>
+      <stop offset="1" stop-color="#060B10"/>
+    </linearGradient>
+    <radialGradient id="moonGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1030 180) rotate(90) scale(170 170)">
+      <stop stop-color="#D3F6FF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#D3F6FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="muzzle" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(850 432) rotate(90) scale(88 152)">
+      <stop stop-color="#FFF2A8"/>
+      <stop offset="0.55" stop-color="#FFB347" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#FF6A1E" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="coat" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#4FB1D9"/>
+      <stop offset="1" stop-color="#1D5F8D"/>
+    </linearGradient>
+    <linearGradient id="ground" x1="700" y1="520" x2="700" y2="900">
+      <stop stop-color="#214131"/>
+      <stop offset="1" stop-color="#0C1913"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+
+  <rect width="1400" height="900" fill="url(#bg)"/>
+  <rect width="1400" height="900" fill="url(#moonGlow)"/>
+
+  <g opacity="0.2">
+    <path d="M0 490L170 420L320 470L520 380L710 450L920 360L1150 430L1400 340V900H0V490Z" fill="#10222D"/>
+    <path d="M0 590L120 560L240 610L410 545L620 630L860 530L1080 610L1260 565L1400 610V900H0V590Z" fill="#152D1D"/>
+  </g>
+
+  <ellipse cx="700" cy="760" rx="690" ry="210" fill="url(#ground)"/>
+  <ellipse cx="700" cy="790" rx="390" ry="74" fill="#09120E"/>
+
+  <g opacity="0.85">
+    <ellipse cx="1030" cy="180" rx="86" ry="86" fill="#D3F6FF"/>
+    <ellipse cx="1030" cy="180" rx="132" ry="132" fill="url(#moonGlow)"/>
+  </g>
+
+  <g filter="url(#shadow)" opacity="0.5">
+    <ellipse cx="647" cy="695" rx="190" ry="55" fill="#000000"/>
+  </g>
+
+  <g transform="translate(170 126)">
+    <ellipse cx="480" cy="568" rx="184" ry="42" fill="#050809" opacity="0.5"/>
+
+    <path d="M420 226C420 191.758 447.758 164 482 164C516.242 164 544 191.758 544 226C544 260.242 516.242 288 482 288C447.758 288 420 260.242 420 226Z" fill="#FFC979"/>
+    <path d="M448 174C462 164 490 160 516 171C504 154 483 144 458 147C440 149 426 159 418 172C430 178 439 181 448 174Z" fill="#2E201B"/>
+
+    <path d="M377 290C404 251 449 234 500 237C548 240 586 262 608 300L582 469L389 469L377 290Z" fill="url(#coat)"/>
+    <path d="M444 297L481 339L524 295" stroke="#A9E5FF" stroke-width="13" stroke-linecap="round"/>
+    <path d="M433 470L455 640H492L507 470H433Z" fill="#2D3944"/>
+    <path d="M502 470L522 640H560L578 470H502Z" fill="#24313D"/>
+    <path d="M429 633L502 633L518 662L438 665L429 633Z" fill="#141B21"/>
+    <path d="M503 633L579 633L598 662L514 665L503 633Z" fill="#141B21"/>
+
+    <path d="M379 306L314 381L302 471L349 471L387 390L421 342L379 306Z" fill="#1C4E6F"/>
+    <path d="M606 310L671 383L684 470L635 470L598 392L564 344L606 310Z" fill="#1D5A7F"/>
+
+    <g transform="rotate(-24 332 414)">
+      <rect x="238" y="396" width="158" height="22" rx="11" fill="#6B4A30"/>
+      <rect x="333" y="388" width="90" height="15" rx="7.5" fill="#2D3237"/>
+      <rect x="381" y="392" width="55" height="8" rx="4" fill="#8B949C"/>
+      <rect x="228" y="404" width="28" height="44" rx="10" fill="#7D5633"/>
+    </g>
+
+    <g transform="rotate(16 610 399)">
+      <rect x="545" y="383" width="170" height="24" rx="12" fill="#6B4A30"/>
+      <rect x="644" y="374" width="98" height="16" rx="8" fill="#2D3237"/>
+      <rect x="695" y="379" width="62" height="8" rx="4" fill="#8B949C"/>
+      <rect x="530" y="390" width="30" height="45" rx="10" fill="#7D5633"/>
+    </g>
+
+    <g opacity="0.95">
+      <path d="M712 398L845 430L730 470L850 512L703 530L733 454L643 468L712 398Z" fill="url(#muzzle)"/>
+      <path d="M260 402L152 434L246 462L136 500L273 512L248 450L324 458L260 402Z" fill="url(#muzzle)"/>
+    </g>
+  </g>
+
+  <g opacity="0.98">
+    <g transform="translate(930 450)">
+      <ellipse cx="0" cy="150" rx="72" ry="22" fill="#000000" opacity="0.35"/>
+      <path d="M-34 9C-34 -25.2417 -6.24165 -53 28 -53C62.2417 -53 90 -25.2417 90 9C90 43.2417 62.2417 71 28 71C-6.24165 71 -34 43.2417 -34 9Z" fill="#A5D56F"/>
+      <rect x="-10" y="58" width="86" height="120" rx="20" fill="#688B48"/>
+      <rect x="0" y="167" width="18" height="88" rx="8" fill="#2F3E34"/>
+      <rect x="40" y="167" width="18" height="88" rx="8" fill="#2F3E34"/>
+      <rect x="-56" y="92" width="46" height="18" rx="9" fill="#506541" transform="rotate(-10 -56 92)"/>
+      <rect x="72" y="100" width="46" height="18" rx="9" fill="#506541" transform="rotate(16 72 100)"/>
+      <circle cx="7" cy="-2" r="7" fill="#182019"/>
+      <circle cx="44" cy="-2" r="7" fill="#182019"/>
+    </g>
+
+    <g transform="translate(1112 524) scale(0.88)">
+      <ellipse cx="0" cy="150" rx="72" ry="22" fill="#000000" opacity="0.35"/>
+      <path d="M-34 9C-34 -25.2417 -6.24165 -53 28 -53C62.2417 -53 90 -25.2417 90 9C90 43.2417 62.2417 71 28 71C-6.24165 71 -34 43.2417 -34 9Z" fill="#9CC86D"/>
+      <rect x="-10" y="58" width="86" height="120" rx="20" fill="#607F44"/>
+      <rect x="0" y="167" width="18" height="88" rx="8" fill="#2F3E34"/>
+      <rect x="40" y="167" width="18" height="88" rx="8" fill="#2F3E34"/>
+      <rect x="-56" y="92" width="46" height="18" rx="9" fill="#506541" transform="rotate(-10 -56 92)"/>
+      <rect x="72" y="100" width="46" height="18" rx="9" fill="#506541" transform="rotate(16 72 100)"/>
+      <circle cx="7" cy="-2" r="7" fill="#182019"/>
+      <circle cx="44" cy="-2" r="7" fill="#182019"/>
+    </g>
+
+    <g transform="translate(876 608) scale(0.8)">
+      <ellipse cx="0" cy="150" rx="72" ry="22" fill="#000000" opacity="0.35"/>
+      <path d="M-34 9C-34 -25.2417 -6.24165 -53 28 -53C62.2417 -53 90 -25.2417 90 9C90 43.2417 62.2417 71 28 71C-6.24165 71 -34 43.2417 -34 9Z" fill="#89BC60"/>
+      <rect x="-10" y="58" width="86" height="120" rx="20" fill="#58743E"/>
+      <rect x="0" y="167" width="18" height="88" rx="8" fill="#2F3E34"/>
+      <rect x="40" y="167" width="18" height="88" rx="8" fill="#2F3E34"/>
+      <rect x="-56" y="92" width="46" height="18" rx="9" fill="#506541" transform="rotate(-10 -56 92)"/>
+      <rect x="72" y="100" width="46" height="18" rx="9" fill="#506541" transform="rotate(16 72 100)"/>
+      <circle cx="7" cy="-2" r="7" fill="#182019"/>
+      <circle cx="44" cy="-2" r="7" fill="#182019"/>
+    </g>
+  </g>
+</svg>

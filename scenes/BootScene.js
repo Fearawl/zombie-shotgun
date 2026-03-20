@@ -8,6 +8,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
+    this.load.image("start-poster", "assets/start-poster.svg");
     this.createTextures();
   }
 
