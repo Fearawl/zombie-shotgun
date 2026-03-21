@@ -31,11 +31,14 @@ const ZOMBIE_ATTACK_DAMAGE = 5;
 const ZOMBIE_ATTACK_COOLDOWN_MS = 2000;
 const ZOMBIE_SPEED_BOOST_PER_BOSS = 1.2;
 const FAST_ZOMBIE_CHANCE = 0.28;
+const BLUE_ZOMBIE_CHANCE = 0.18;
 const GRENADE_DAMAGE = 45;
 const GRENADE_RADIUS = 120;
 const MAX_ACTIVE_ZOMBIES = 48;
 const MAX_DROPPED_PICKUPS = 24;
 const DROPPED_PICKUP_LIFETIME_MS = 18000;
+const SMALL_ZOMBIE_MEDKIT_CHANCE = 0.3;
+const MEDKIT_HEAL_AMOUNT = 5;
 const HOUSE_LOOT_WEAPON_CHANCE = 0.45;
 const WORLD_WIDTH = 3200;
 const WORLD_HEIGHT = 2200;
@@ -104,6 +107,7 @@ export class GameScene extends Phaser.Scene {
     this.projectiles = this.add.group();
     this.obstacles = this.physics.add.staticGroup();
     this.houses = [];
+    this.graves = [];
     this.zombies = this.physics.add.group({
       classType: Zombie,
       runChildUpdate: true,
@@ -156,8 +160,38 @@ export class GameScene extends Phaser.Scene {
 
   createWorldProps() {
     this.createHouses();
+    this.createGraves();
     this.createBoundaryTrees();
     this.createScatteredTrees();
+  }
+
+  createGraves() {
+    const graves = [
+      [320, 240, 0.9],
+      [680, 250, 1],
+      [1180, 250, 0.95],
+      [1520, 340, 1],
+      [1960, 280, 0.92],
+      [2450, 360, 1.04],
+      [2860, 300, 0.96],
+      [320, 760, 0.95],
+      [610, 960, 1],
+      [1260, 980, 0.92],
+      [1880, 920, 1.02],
+      [2220, 1080, 1],
+      [2750, 980, 0.94],
+      [420, 1380, 1],
+      [1160, 1500, 1.05],
+      [1720, 1500, 0.92],
+      [2320, 1460, 1],
+      [2940, 1420, 0.94],
+      [760, 1880, 0.96],
+      [1480, 1880, 1],
+      [2080, 1900, 0.9],
+      [2740, 1860, 1.02],
+    ];
+
+    graves.forEach(([x, y, scale]) => this.addGrave(x, y, scale));
   }
 
   createBoundaryTrees() {
@@ -223,6 +257,18 @@ export class GameScene extends Phaser.Scene {
     tree.setScale(scale);
     tree.setDepth(3);
     return tree;
+  }
+
+  addGrave(x, y, scale = 1) {
+    if (this.isPointInsideAnyHouse(x, y, 44)) {
+      return null;
+    }
+
+    const grave = this.add.image(x, y, "grave");
+    grave.setScale(scale);
+    grave.setDepth(2.5);
+    this.graves.push(grave);
+    return grave;
   }
 
   addHouse(x, y, width, height) {
@@ -369,28 +415,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   createZombies() {
-    const points = [
-      [820, 400],
-      [1040, 540],
-      [1240, 760],
-      [880, 860],
-      [1420, 520],
-      [1540, 900],
-      [1680, 610],
-      [1320, 1120],
-      [980, 1180],
-      [640, 980],
-      [1710, 1180],
-      [1880, 760],
-    ];
-
     for (let i = 0; i < ZOMBIE_COUNT; i += 1) {
-      const [x, y] = points[i % points.length];
-      const offsetX = Math.floor(i / points.length) * 58;
-      const offsetY = (i % 2 === 0 ? 1 : -1) * Math.floor(i / points.length) * 44;
-      this.spawnZombie(x + offsetX, y + offsetY, {
+      const grave = this.graves[i % this.graves.length];
+      const x = grave ? grave.x + Phaser.Math.Between(-10, 10) : 820 + i * 24;
+      const y = grave ? grave.y + Phaser.Math.Between(-10, 10) : 400 + i * 18;
+      this.spawnZombie(x, y, {
         emerge: false,
-        isFast: i % 6 === 0,
+        isFast: i % 7 === 0,
+        isBlue: i % 9 === 0,
       });
     }
   }
@@ -1572,9 +1604,11 @@ export class GameScene extends Phaser.Scene {
       player.weapons.pistol.reserveAmmo += pickup.ammoAmount;
     } else if (pickup.pickupType === "grenade") {
       player.weapons.grenade.ammo += pickup.ammoAmount;
+    } else if (pickup.pickupType === "medkit") {
+      player.healthPoints = Math.min(PLAYER_MAX_HEALTH, player.healthPoints + pickup.ammoAmount);
     }
     pickup.consume();
-    this.flashUi("#f9d27b");
+    this.flashUi(pickup.pickupType === "medkit" ? "#97efaa" : "#f9d27b");
 
     if (!pickup.shouldRespawn) {
       return;
@@ -1819,7 +1853,45 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  handleZombieDefeat(zombie, dropPosition) {
+    if (zombie.isBlue) {
+      const spawnCount = Phaser.Math.Between(1, 2);
+      for (let i = 0; i < spawnCount; i += 1) {
+        const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+        const distance = Phaser.Math.Between(18, 34);
+        this.spawnZombie(
+          Phaser.Math.Clamp(dropPosition.x + Math.cos(angle) * distance, 64, WORLD_WIDTH - 64),
+          Phaser.Math.Clamp(dropPosition.y + Math.sin(angle) * distance, 64, WORLD_HEIGHT - 64),
+          {
+            emerge: true,
+            isSmall: true,
+          }
+        );
+      }
+    }
+
+    if (zombie.isSmall) {
+      if (Math.random() < SMALL_ZOMBIE_MEDKIT_CHANCE) {
+        this.spawnZombieDrop(dropPosition.x, dropPosition.y, "medkit");
+      }
+      return;
+    }
+
+    if (zombie.dropType && zombie.dropType !== "none") {
+      this.spawnZombieDrop(dropPosition.x, dropPosition.y, zombie.dropType);
+    }
+  }
+
   buildPickupOptions(pickupType) {
+    if (pickupType === "medkit") {
+      return {
+        pickupType,
+        textureKey: "medkit-box",
+        iconTextureKey: "medkit-icon",
+        ammoAmount: MEDKIT_HEAL_AMOUNT,
+      };
+    }
+
     if (pickupType === "pistolAmmo") {
       return {
         pickupType,
@@ -1999,22 +2071,31 @@ export class GameScene extends Phaser.Scene {
 
   spawnZombie(x, y, options = {}) {
     const isFast = options.isFast ?? false;
-    const dropType = isFast ? (Math.random() < 0.5 ? "pistolAmmo" : "grenade") : "shotgunAmmo";
+    const isBlue = options.isBlue ?? false;
+    const isSmall = options.isSmall ?? false;
+    const dropType = isSmall
+      ? "none"
+      : isFast
+        ? (Math.random() < 0.5 ? "pistolAmmo" : "grenade")
+        : "shotgunAmmo";
     const zombie = new Zombie(this, x, y, {
       isBoss: options.isBoss ?? false,
-      maxHealth: options.maxHealth ?? 10,
+      maxHealth: options.maxHealth ?? (isSmall ? 4 : isBlue ? 14 : 10),
       isFast,
-      moveSpeed: options.moveSpeed ?? (isFast ? 78 : undefined),
-      tint: options.tint ?? (isFast ? 0xd58a35 : undefined),
+      isBlue,
+      isSmall,
+      moveSpeed: options.moveSpeed ?? (isSmall ? 96 : isFast ? 78 : isBlue ? 56 : undefined),
+      tint: options.tint ?? (isSmall ? 0x9fd680 : isBlue ? 0x4a8ed9 : isFast ? 0xd58a35 : undefined),
       aggroRadius: this.settings.aggroRadius,
       attackCooldownMs: ZOMBIE_ATTACK_COOLDOWN_MS,
       speedMultiplier: this.zombieSpeedMultiplier,
       dropType,
+      scale: options.scale ?? (isSmall ? 0.7 : isBlue ? 1.06 : undefined),
     });
     this.zombies.add(zombie);
 
     if (options.emerge !== false) {
-      zombie.emergeFromGround(options.isBoss ? 700 : isFast ? 360 : 420);
+      zombie.emergeFromGround(options.isBoss ? 700 : isSmall ? 280 : isFast ? 360 : isBlue ? 460 : 420);
     }
 
     return zombie;
@@ -2022,6 +2103,19 @@ export class GameScene extends Phaser.Scene {
 
   spawnZombieNearPlayer(isBoss) {
     if (!isBoss && this.zombies.countActive(true) >= MAX_ACTIVE_ZOMBIES) {
+      return;
+    }
+
+    if (!isBoss && this.graves.length > 0) {
+      const grave = Phaser.Utils.Array.GetRandom(this.graves);
+      const x = Phaser.Math.Clamp(grave.x + Phaser.Math.Between(-10, 10), 64, WORLD_WIDTH - 64);
+      const y = Phaser.Math.Clamp(grave.y + Phaser.Math.Between(-6, 6), 64, WORLD_HEIGHT - 64);
+      const isBlue = Math.random() < BLUE_ZOMBIE_CHANCE;
+      this.spawnZombie(x, y, {
+        emerge: true,
+        isBlue,
+        isFast: !isBlue && Math.random() < FAST_ZOMBIE_CHANCE,
+      });
       return;
     }
 

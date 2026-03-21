@@ -25,12 +25,15 @@ export class BootScene extends Phaser.Scene {
     this.makeRoundedRectTexture("ammo-box", 50, 34, 8, 0xca8b4d, 0x5f3a1d);
     this.makeRoundedRectTexture("pistol-ammo-box", 50, 34, 8, 0x6f8fd8, 0x23385d);
     this.makeRoundedRectTexture("grenade-box", 50, 34, 8, 0x7b6a8b, 0x332348);
+    this.makeRoundedRectTexture("medkit-box", 50, 34, 8, 0xb45252, 0x5d1f1f);
     this.makeRoundedRectTexture("shell-icon", 12, 28, 4, 0xd6ab5d, 0x6b471f);
     this.makeRoundedRectTexture("pistol-icon", 12, 20, 3, 0xd9edf9, 0x4d6f87);
     this.makeGrenadeTexture("grenade-icon", 18);
+    this.makeMedkitIconTexture("medkit-icon", 18);
     this.makeRoundedRectTexture("wall-block", 16, 16, 3, 0x7e858b, 0x43484d);
     this.makeHouseTexture("house", 110, 86);
     this.makeTreeTexture("tree", 70, 96);
+    this.makeGraveTexture("grave", 46, 58);
   }
 
   makeCircleTexture(key, size, fillColor, strokeColor) {
@@ -142,6 +145,36 @@ export class BootScene extends Phaser.Scene {
     graphics.strokeCircle(width / 2 + 18, 52, 18);
     graphics.fillCircle(width / 2, 62, 20);
     graphics.strokeCircle(width / 2, 62, 20);
+    graphics.generateTexture(key, width, height);
+    graphics.destroy();
+  }
+
+  makeMedkitIconTexture(key, size) {
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    graphics.fillStyle(0xf5efe8, 1);
+    graphics.lineStyle(2, 0x7b1f1f, 1);
+    graphics.fillRoundedRect(size * 0.18, size * 0.18, size * 0.64, size * 0.64, 4);
+    graphics.strokeRoundedRect(size * 0.18, size * 0.18, size * 0.64, size * 0.64, 4);
+    graphics.fillStyle(0xbe2d2d, 1);
+    graphics.fillRect(size * 0.42, size * 0.28, size * 0.16, size * 0.44);
+    graphics.fillRect(size * 0.28, size * 0.42, size * 0.44, size * 0.16);
+    graphics.generateTexture(key, size, size);
+    graphics.destroy();
+  }
+
+  makeGraveTexture(key, width, height) {
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    graphics.fillStyle(0x141719, 0.2);
+    graphics.fillEllipse(width / 2, height - 6, width * 0.82, 14);
+    graphics.fillStyle(0x71767b, 1);
+    graphics.lineStyle(3, 0x3d4146, 1);
+    graphics.fillRoundedRect(8, 14, width - 16, height - 24, 10);
+    graphics.strokeRoundedRect(8, 14, width - 16, height - 24, 10);
+    graphics.fillStyle(0x81878c, 1);
+    graphics.fillRect(width * 0.32, height - 16, width * 0.36, 8);
+    graphics.lineStyle(2, 0x949a9f, 0.55);
+    graphics.lineBetween(width / 2, 24, width / 2, height - 24);
+    graphics.lineBetween(width * 0.34, 34, width * 0.66, 34);
     graphics.generateTexture(key, width, height);
     graphics.destroy();
   }
