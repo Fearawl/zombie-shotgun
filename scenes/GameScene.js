@@ -280,7 +280,24 @@ export class GameScene extends Phaser.Scene {
       [2850, 1620, 396, 284],
     ];
 
-    houses.forEach(([x, y, width, height]) => this.addHouse(x, y, width, height));
+    const guaranteedHouseIndex = Phaser.Math.Between(0, houses.length - 1);
+    const guaranteedWeaponKey = Phaser.Utils.Array.GetRandom([WEAPONS.shotgun.key, WEAPONS.pistol.key]);
+
+    houses.forEach(([x, y, width, height], index) =>
+      this.addHouse(
+        x,
+        y,
+        width,
+        height,
+        index === guaranteedHouseIndex
+          ? {
+              type: "weapon",
+              weaponKey: guaranteedWeaponKey,
+              label: `Found ${WEAPONS[guaranteedWeaponKey].label}`,
+            }
+          : null
+      )
+    );
   }
 
   addTree(x, y, scale = 1) {
@@ -306,7 +323,7 @@ export class GameScene extends Phaser.Scene {
     return grave;
   }
 
-  addHouse(x, y, width, height) {
+  addHouse(x, y, width, height, forcedLoot = null) {
     const halfWidth = width / 2;
     const halfHeight = height / 2;
     const wallThickness = 12;
@@ -315,11 +332,33 @@ export class GameScene extends Phaser.Scene {
     const floorTop = y - halfHeight + roofInset;
     const bottomWallWidth = (width - doorWidth) / 2;
     const bottomWallOffset = doorWidth / 2 + bottomWallWidth / 2;
+    const interiorLeft = x - halfWidth + 16;
+    const interiorTop = floorTop + 8;
+    const interiorWidth = width - 32;
+    const interiorHeight = height - roofInset - 24;
 
-    const loot = this.rollHouseLoot();
+    const loot = forcedLoot ?? this.rollHouseLoot();
     const lootX = x + 68;
     const lootY = floorTop + 104;
     const lootVisual = this.createHouseLootVisual(loot, lootX, lootY);
+    const roomLines = this.add.graphics().setDepth(2.1);
+    roomLines.lineStyle(4, 0x7a858d, 0.9);
+    roomLines.strokeRect(interiorLeft, interiorTop, interiorWidth, interiorHeight);
+
+    const partitionX = x - width * 0.1;
+    const verticalDoorGap = 62;
+    const verticalTopHeight = interiorHeight * 0.32;
+    const verticalBottomY = interiorTop + verticalTopHeight + verticalDoorGap;
+    const verticalBottomHeight = interiorHeight - verticalTopHeight - verticalDoorGap;
+
+    roomLines.lineStyle(3, 0x8d989f, 0.75);
+    roomLines.lineBetween(partitionX, interiorTop, partitionX, interiorTop + verticalTopHeight);
+    roomLines.lineBetween(partitionX, verticalBottomY, partitionX, interiorTop + interiorHeight);
+
+    const horizontalY = y - height * 0.04;
+    const horizontalGapX = partitionX - 44;
+    roomLines.lineBetween(interiorLeft, horizontalY, horizontalGapX, horizontalY);
+    roomLines.lineBetween(horizontalGapX + 72, horizontalY, x + halfWidth - 28, horizontalY);
 
     const roof = this.add.graphics().setDepth(5);
     roof.fillStyle(0x575c62, 1);
@@ -350,19 +389,29 @@ export class GameScene extends Phaser.Scene {
       bottomWallWidth,
       wallThickness
     );
+    this.addWall(partitionX, interiorTop + verticalTopHeight / 2, wallThickness, verticalTopHeight);
+    this.addWall(partitionX, verticalBottomY + verticalBottomHeight / 2, wallThickness, verticalBottomHeight);
+    this.addWall(
+      interiorLeft + (horizontalGapX - interiorLeft) / 2,
+      horizontalY,
+      horizontalGapX - interiorLeft,
+      wallThickness
+    );
+    this.addWall(
+      (horizontalGapX + 72 + (x + halfWidth - 28)) / 2,
+      horizontalY,
+      x + halfWidth - 28 - (horizontalGapX + 72),
+      wallThickness
+    );
 
     this.houses.push({
       x,
       y,
       width,
       height,
-      interiorBounds: new Phaser.Geom.Rectangle(
-        x - halfWidth + 16,
-        floorTop + 8,
-        width - 32,
-        height - roofInset - 24
-      ),
+      interiorBounds: new Phaser.Geom.Rectangle(interiorLeft, interiorTop, interiorWidth, interiorHeight),
       roof,
+      roomLines,
       loot,
       lootVisual,
       lootPosition: new Phaser.Math.Vector2(lootX, lootY),
@@ -1524,7 +1573,10 @@ export class GameScene extends Phaser.Scene {
     }
 
     const neededAmmo = clipSize - weapon.clipAmmo;
-    const loadedAmmo = Math.min(1, neededAmmo, weapon.reserveAmmo);
+    const loadedAmmo =
+      this.player.currentWeapon === WEAPONS.shotgun.key
+        ? Math.min(1, neededAmmo, weapon.reserveAmmo)
+        : Math.min(neededAmmo, weapon.reserveAmmo);
     weapon.clipAmmo += loadedAmmo;
     weapon.reserveAmmo -= loadedAmmo;
     this.flashUi("#a7efc5");
@@ -1683,6 +1735,9 @@ export class GameScene extends Phaser.Scene {
     this.houses.forEach((house) => {
       const isInside = Phaser.Geom.Rectangle.Contains(house.interiorBounds, this.player.x, this.player.y);
       house.roof.setAlpha(isInside ? 0.16 : 1);
+      if (house.roomLines) {
+        house.roomLines.setAlpha(isInside ? 1 : 0.22);
+      }
 
       if (house.lootVisual) {
         house.lootVisual.setVisible(!house.collected && isInside);
