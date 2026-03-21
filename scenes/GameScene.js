@@ -587,6 +587,7 @@ export class GameScene extends Phaser.Scene {
       firing: false,
       aimScreenX: this.scale.width * 0.76,
       aimScreenY: this.scale.height * 0.54,
+      blockedZones: [],
     };
 
     if (!this.isMobile) {
@@ -597,20 +598,11 @@ export class GameScene extends Phaser.Scene {
 
     const leftBaseX = 112;
     const leftBaseY = this.scale.height - 108;
-    const rightBaseX = this.scale.width - 126;
-    const rightBaseY = this.scale.height - 114;
 
     const moveBase = this.add.circle(leftBaseX, leftBaseY, 54, 0x0d1820, 0.34).setStrokeStyle(3, 0x5a7a90, 0.55);
     const moveKnob = this.add.circle(leftBaseX, leftBaseY, 24, 0xc7d6e0, 0.38).setStrokeStyle(2, 0xe9f5ff, 0.6);
     const moveZone = this.add.zone(leftBaseX, leftBaseY, 144, 144).setInteractive();
-
-    const fireBase = this.add.circle(rightBaseX, rightBaseY, 62, 0x3b1611, 0.34).setStrokeStyle(3, 0xd36d46, 0.7);
-    const fireText = this.add.text(rightBaseX, rightBaseY, "FIRE", {
-      fontFamily: "Arial Black, sans-serif",
-      fontSize: "20px",
-      color: "#ffd8bb",
-    }).setOrigin(0.5);
-    const fireZone = this.add.zone(rightBaseX, rightBaseY, 168, 168).setInteractive();
+    this.mobile.blockedZones.push(new Phaser.Geom.Rectangle(leftBaseX - 78, leftBaseY - 78, 156, 156));
 
     const reloadButton = this.createMobileButton(710, this.scale.height - 76, 84, 38, "R", () => this.reloadWeapon());
     const interactButton = this.createMobileButton(804, this.scale.height - 76, 84, 38, "E", () => this.tryPickupCurrentHouseLoot());
@@ -624,12 +616,6 @@ export class GameScene extends Phaser.Scene {
     moveZone.on("pointerdown", (pointer) => {
       this.mobile.movePointerId = pointer.id;
       this.updateMobileMove(pointer, leftBaseX, leftBaseY, moveKnob);
-    });
-
-    fireZone.on("pointerdown", (pointer) => {
-      this.mobile.aimPointerId = pointer.id;
-      this.mobile.firing = true;
-      this.updateMobileAim(pointer);
     });
 
     this.input.on("pointermove", (pointer) => {
@@ -657,9 +643,6 @@ export class GameScene extends Phaser.Scene {
       moveBase,
       moveKnob,
       moveZone,
-      fireBase,
-      fireText,
-      fireZone,
       reloadButton,
       interactButton,
       rangeButton,
@@ -717,6 +700,9 @@ export class GameScene extends Phaser.Scene {
     hit.on("pointerup", () => container.setScale(1));
     hit.on("pointerout", () => container.setScale(1));
     container.add([bg, text, hit]);
+    if (this.mobile) {
+      this.mobile.blockedZones.push(new Phaser.Geom.Rectangle(x - width / 2 - 6, y - height / 2 - 6, width + 12, height + 12));
+    }
     return container;
   }
 
@@ -735,6 +721,14 @@ export class GameScene extends Phaser.Scene {
   updateMobileAim(pointer) {
     this.mobile.aimScreenX = pointer.x;
     this.mobile.aimScreenY = pointer.y;
+  }
+
+  isPointerOnMobileUi(pointer) {
+    if (!this.isMobile || !this.mobile) {
+      return false;
+    }
+
+    return this.mobile.blockedZones.some((zone) => Phaser.Geom.Rectangle.Contains(zone, pointer.x, pointer.y));
   }
 
   createSliderControl({ parent, x, y, width, label, min, max, step, initial, formatValue, onChange }) {
@@ -826,6 +820,23 @@ export class GameScene extends Phaser.Scene {
     this.game.canvas.oncontextmenu = (event) => event.preventDefault();
     this.input.on("pointerdown", (pointer) => {
       if (this.isPaused) {
+        return;
+      }
+
+      if (this.isMobile && !this.isPointerOnMobileUi(pointer) && pointer.id !== this.mobile.movePointerId) {
+        this.mobile.aimPointerId = pointer.id;
+        this.mobile.firing = true;
+        this.updateMobileAim(pointer);
+
+        if (this.canCurrentWeaponFire()) {
+          const aimPoint = this.getAimWorldPoint();
+          this.useCurrentWeapon({
+            worldX: aimPoint.x,
+            worldY: aimPoint.y,
+          });
+        } else {
+          this.handleEmptyTrigger();
+        }
         return;
       }
 
