@@ -23,15 +23,33 @@ export class AmmoPickup extends Phaser.Physics.Arcade.Sprite {
   preUpdate(time, delta) {
     super.preUpdate(time, delta);
 
+    if (!this.active) {
+      return;
+    }
+
     const bob = Math.sin(time * 0.004 + this.x * 0.01) * 4;
     this.setY(this.spawnPoint.y + bob);
-    this.iconLeft.setPosition(this.x - 10, this.y);
-    this.iconRight.setPosition(this.x + 10, this.y);
+    if (this.iconLeft && this.iconLeft.active) {
+      this.iconLeft.setPosition(this.x - 10, this.y);
+    }
+    if (this.iconRight && this.iconRight.active) {
+      this.iconRight.setPosition(this.x + 10, this.y);
+    }
   }
 
   consume() {
-    this.iconLeft.destroy();
-    this.iconRight.destroy();
+    if (!this.active) {
+      return;
+    }
+
+    if (this.iconLeft) {
+      this.iconLeft.destroy();
+      this.iconLeft = null;
+    }
+    if (this.iconRight) {
+      this.iconRight.destroy();
+      this.iconRight = null;
+    }
     this.destroy();
   }
 }

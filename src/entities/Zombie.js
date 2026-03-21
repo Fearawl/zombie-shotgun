@@ -49,9 +49,15 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   preUpdate(time, delta) {
     super.preUpdate(time, delta);
 
+    if (!this.active) {
+      return;
+    }
+
     if (!this.canMove) {
       this.setVelocity(0, 0);
-      this.shadow.setPosition(this.x + 6, this.y + (this.isBoss ? 24 : 18));
+      if (this.shadow) {
+        this.shadow.setPosition(this.x + 6, this.y + (this.isBoss ? 24 : 18));
+      }
       this.drawHealthBar();
       return;
     }
@@ -71,7 +77,9 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
       this.setVelocity(this.walkDirection.x * this.moveSpeed, this.walkDirection.y * this.moveSpeed);
     }
 
-    this.shadow.setPosition(this.x + 6, this.y + (this.isBoss ? 24 : 18));
+    if (this.shadow) {
+      this.shadow.setPosition(this.x + 6, this.y + (this.isBoss ? 24 : 18));
+    }
     this.drawHealthBar();
   }
 
@@ -160,6 +168,10 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   }
 
   drawHealthBar() {
+    if (!this.healthBar) {
+      return;
+    }
+
     const width = this.isBoss ? 56 : this.isFast ? 44 : 40;
     this.healthBar.clear();
     this.healthBar.fillStyle(0x371718, 0.9);
@@ -176,8 +188,14 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
 
   die() {
     const dropPosition = this.getDropPosition();
-    this.shadow.destroy();
-    this.healthBar.destroy();
+    if (this.shadow) {
+      this.shadow.destroy();
+      this.shadow = null;
+    }
+    if (this.healthBar) {
+      this.healthBar.destroy();
+      this.healthBar = null;
+    }
 
     const stain = this.scene.add
       .ellipse(this.x, this.y + 14, this.isBoss ? 60 : 42, this.isBoss ? 24 : 18, 0x2a0f10, 0.65)
