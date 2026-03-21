@@ -27,9 +27,9 @@ const BOSS_HEALTH = 100;
 const PELLET_HIT_RADIUS = 22;
 const DEFAULT_AGGRO_RADIUS = Math.round(960 * 0.3);
 const PLAYER_HIT_RADIUS = 34;
-const ZOMBIE_ATTACK_DAMAGE = 5;
+const ZOMBIE_ATTACK_DAMAGE_MIN = 1;
+const ZOMBIE_ATTACK_DAMAGE_MAX = 3;
 const ZOMBIE_ATTACK_COOLDOWN_MS = 2000;
-const ZOMBIE_SPEED_BOOST_PER_BOSS = 1.2;
 const FAST_ZOMBIE_CHANCE = 0.28;
 const BLUE_ZOMBIE_CHANCE = 0.18;
 const GRENADE_DAMAGE = 45;
@@ -39,6 +39,10 @@ const MAX_DROPPED_PICKUPS = 24;
 const DROPPED_PICKUP_LIFETIME_MS = 18000;
 const SMALL_ZOMBIE_MEDKIT_CHANCE = 0.3;
 const MEDKIT_HEAL_AMOUNT = 5;
+const ENERGY_DRINK_CHANCE = 0.12;
+const ENERGY_BOOST_MS = 5000;
+const ENERGY_SPEED_MULTIPLIER = 1.5;
+const HOUSE_BREACH_DELAY_MS = 15000;
 const HOUSE_LOOT_WEAPON_CHANCE = 0.45;
 const WORLD_WIDTH = 3200;
 const WORLD_HEIGHT = 2200;
@@ -126,6 +130,7 @@ export class GameScene extends Phaser.Scene {
     this.player.setCircle(18, 4, 4);
     this.player.facingAngle = 0;
     this.player.healthPoints = PLAYER_MAX_HEALTH;
+    this.player.speedBoostUntil = 0;
     this.player.weapons = {
       bat: {
         unlocked: true,
@@ -476,6 +481,14 @@ export class GameScene extends Phaser.Scene {
 
   getHouseAtPoint(x, y) {
     return this.houses.find((house) => Phaser.Geom.Rectangle.Contains(house.interiorBounds, x, y)) ?? null;
+  }
+
+  canZombiesEnterHouse(house) {
+    if (!house || !this.playerHouseStay) {
+      return false;
+    }
+
+    return this.playerHouseStay.house === house && this.time.now - this.playerHouseStay.enteredAt >= HOUSE_BREACH_DELAY_MS;
   }
 
   addWall(x, y, width, height) {
@@ -1030,8 +1043,12 @@ export class GameScene extends Phaser.Scene {
     }
 
     const direction = new Phaser.Math.Vector2(moveX, moveY);
+    const speedMultiplier =
+      this.player.speedBoostUntil && this.time.now < this.player.speedBoostUntil
+        ? ENERGY_SPEED_MULTIPLIER
+        : 1;
     if (direction.lengthSq() > 0) {
-      direction.normalize().scale(PLAYER_SPEED);
+      direction.normalize().scale(PLAYER_SPEED * speedMultiplier);
     }
 
     this.player.setVelocity(direction.x, direction.y);
@@ -1695,9 +1712,11 @@ export class GameScene extends Phaser.Scene {
       player.weapons.grenade.ammo += pickup.ammoAmount;
     } else if (pickup.pickupType === "medkit") {
       player.healthPoints = Math.min(PLAYER_MAX_HEALTH, player.healthPoints + pickup.ammoAmount);
+    } else if (pickup.pickupType === "energyDrink") {
+      player.speedBoostUntil = this.time.now + ENERGY_BOOST_MS;
     }
     pickup.consume();
-    this.flashUi(pickup.pickupType === "medkit" ? "#97efaa" : "#f9d27b");
+    this.flashUi(pickup.pickupType === "medkit" ? "#97efaa" : pickup.pickupType === "energyDrink" ? "#8fe7ff" : "#f9d27b");
 
     if (!pickup.shouldRespawn) {
       return;
@@ -1720,6 +1739,16 @@ export class GameScene extends Phaser.Scene {
   }
 
   updateHouses() {
+    const currentHouse = this.getHouseAtPoint(this.player.x, this.player.y);
+    if (!currentHouse) {
+      this.playerHouseStay = null;
+    } else if (!this.playerHouseStay || this.playerHouseStay.house !== currentHouse) {
+      this.playerHouseStay = {
+        house: currentHouse,
+        enteredAt: this.time.now,
+      };
+    }
+
     this.houses.forEach((house) => {
       const isInside = Phaser.Geom.Rectangle.Contains(house.interiorBounds, this.player.x, this.player.y);
       house.roof.setAlpha(isInside ? 0.16 : 1);
@@ -1868,7 +1897,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     zombie.recordAttack(this.time.now);
-    player.healthPoints = Math.max(0, player.healthPoints - ZOMBIE_ATTACK_DAMAGE);
+    player.healthPoints = Math.max(0, player.healthPoints - this.getZombieAttackDamage());
     this.cameras.main.shake(90, 0.003);
     this.flashUi("#ff8b7d");
 
@@ -1929,6 +1958,13 @@ export class GameScene extends Phaser.Scene {
       survivedSeconds: Math.floor((this.time.now - this.roundStartedAt) / 1000),
       bossesSpawned: this.bossesSpawned,
     });
+  }
+
+  getZombieAttackDamage() {
+    const progress = Phaser.Math.Clamp((this.time.now - this.roundStartedAt) / SURVIVAL_GOAL_MS, 0, 1);
+    return Math.round(
+      Phaser.Math.Linear(ZOMBIE_ATTACK_DAMAGE_MIN, ZOMBIE_ATTACK_DAMAGE_MAX, progress)
+    );
   }
 
   startExtractionSequence() {
@@ -2065,12 +2101,26 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    if (Math.random() < ENERGY_DRINK_CHANCE) {
+      this.spawnZombieDrop(dropPosition.x, dropPosition.y, "energyDrink");
+      return;
+    }
+
     if (zombie.dropType && zombie.dropType !== "none") {
       this.spawnZombieDrop(dropPosition.x, dropPosition.y, zombie.dropType);
     }
   }
 
   buildPickupOptions(pickupType) {
+    if (pickupType === "energyDrink") {
+      return {
+        pickupType,
+        textureKey: "energy-box",
+        iconTextureKey: "energy-icon",
+        ammoAmount: 1,
+      };
+    }
+
     if (pickupType === "medkit") {
       return {
         pickupType,
@@ -2268,15 +2318,15 @@ export class GameScene extends Phaser.Scene {
         : "shotgunAmmo";
     const zombie = new Zombie(this, x, y, {
       isBoss: options.isBoss ?? false,
-      maxHealth: options.maxHealth ?? (isSmall ? 4 : isBlue ? 14 : 10),
+      maxHealth: options.maxHealth ?? (isSmall ? 6 : isBlue ? 22 : options.isBoss ? 140 : 18),
       isFast,
       isBlue,
       isSmall,
-      moveSpeed: options.moveSpeed ?? (isSmall ? 96 : isFast ? 78 : isBlue ? 56 : undefined),
+      moveSpeed: options.moveSpeed ?? (isSmall ? 92 : isFast ? 74 : isBlue ? 54 : undefined),
       tint: options.tint ?? (isSmall ? 0x9fd680 : isBlue ? 0x4a8ed9 : isFast ? 0xd58a35 : undefined),
       aggroRadius: this.settings.aggroRadius,
       attackCooldownMs: ZOMBIE_ATTACK_COOLDOWN_MS,
-      speedMultiplier: this.zombieSpeedMultiplier,
+      speedMultiplier: 1,
       dropType,
       scale: options.scale ?? (isSmall ? 0.7 : isBlue ? 1.06 : undefined),
     });
@@ -2321,11 +2371,10 @@ export class GameScene extends Phaser.Scene {
     );
 
     if (isBoss) {
-      this.boostZombieSpeed();
       this.spawnZombie(x, y, {
         emerge: true,
         isBoss: true,
-        maxHealth: BOSS_HEALTH,
+        maxHealth: 140,
         moveSpeed: 42,
         tint: 0xc84a42,
       });
@@ -2374,13 +2423,6 @@ export class GameScene extends Phaser.Scene {
     graphics.fillEllipse(2360, 920, 560, 220);
     graphics.fillEllipse(2820, 1540, 620, 240);
     graphics.fillEllipse(1080, 1820, 720, 250);
-  }
-
-  boostZombieSpeed() {
-    this.zombieSpeedMultiplier *= ZOMBIE_SPEED_BOOST_PER_BOSS;
-    this.zombies.getChildren().forEach((zombie) => {
-      zombie.setSpeedMultiplier(this.zombieSpeedMultiplier);
-    });
   }
 
   updateZombieSpawnInterval(delayMs) {

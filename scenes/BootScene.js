@@ -26,10 +26,12 @@ export class BootScene extends Phaser.Scene {
     this.makeRoundedRectTexture("pistol-ammo-box", 50, 34, 8, 0x6f8fd8, 0x23385d);
     this.makeRoundedRectTexture("grenade-box", 50, 34, 8, 0x7b6a8b, 0x332348);
     this.makeRoundedRectTexture("medkit-box", 50, 34, 8, 0xb45252, 0x5d1f1f);
+    this.makeRoundedRectTexture("energy-box", 50, 34, 8, 0x46a6d1, 0x154d68);
     this.makeRoundedRectTexture("shell-icon", 12, 28, 4, 0xd6ab5d, 0x6b471f);
     this.makeRoundedRectTexture("pistol-icon", 12, 20, 3, 0xd9edf9, 0x4d6f87);
     this.makeGrenadeTexture("grenade-icon", 18);
     this.makeMedkitIconTexture("medkit-icon", 18);
+    this.makeEnergyIconTexture("energy-icon", 18);
     this.makeRoundedRectTexture("wall-block", 16, 16, 3, 0x7e858b, 0x43484d);
     this.makeHouseTexture("house", 110, 86);
     this.makeTreeTexture("tree", 70, 96);
@@ -176,6 +178,21 @@ export class BootScene extends Phaser.Scene {
     graphics.lineBetween(width / 2, 24, width / 2, height - 24);
     graphics.lineBetween(width * 0.34, 34, width * 0.66, 34);
     graphics.generateTexture(key, width, height);
+    graphics.destroy();
+  }
+
+  makeEnergyIconTexture(key, size) {
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    graphics.fillStyle(0x8de7ff, 1);
+    graphics.lineStyle(2, 0x18465f, 1);
+    graphics.fillRoundedRect(size * 0.3, size * 0.12, size * 0.4, size * 0.76, 4);
+    graphics.strokeRoundedRect(size * 0.3, size * 0.12, size * 0.4, size * 0.76, 4);
+    graphics.fillStyle(0xdaf7ff, 1);
+    graphics.fillRect(size * 0.4, size * 0.04, size * 0.2, size * 0.08);
+    graphics.fillStyle(0xf8f3a6, 1);
+    graphics.fillTriangle(size * 0.56, size * 0.24, size * 0.42, size * 0.54, size * 0.58, size * 0.54);
+    graphics.fillTriangle(size * 0.46, size * 0.54, size * 0.62, size * 0.54, size * 0.42, size * 0.84);
+    graphics.generateTexture(key, size, size);
     graphics.destroy();
   }
 }

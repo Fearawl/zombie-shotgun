@@ -88,7 +88,10 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
         ? this.scene.getHouseAtPoint(nextX, nextY)
         : null;
 
-      if (!zombieHouse && nextHouse) {
+      const canEnterNextHouse = nextHouse && this.scene && this.scene.canZombiesEnterHouse
+        ? this.scene.canZombiesEnterHouse(nextHouse)
+        : false;
+      if (!zombieHouse && nextHouse && !canEnterNextHouse) {
         this.setVelocity(0, 0);
       } else {
         this.setVelocity(Math.cos(angle) * this.moveSpeed, Math.sin(angle) * this.moveSpeed);
@@ -103,7 +106,10 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
         ? this.scene.getHouseAtPoint(nextX, nextY)
         : null;
 
-      if (!zombieHouse && nextHouse) {
+      const canEnterNextHouse = nextHouse && this.scene && this.scene.canZombiesEnterHouse
+        ? this.scene.canZombiesEnterHouse(nextHouse)
+        : false;
+      if (!zombieHouse && nextHouse && !canEnterNextHouse) {
         this.pickNewDirection(time + 120);
         this.setVelocity(0, 0);
       } else {
