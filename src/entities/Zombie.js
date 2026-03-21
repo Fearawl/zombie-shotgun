@@ -105,7 +105,11 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
       scaleY: 1.15,
       alpha: 0.28,
       duration,
-      onComplete: () => dirt.destroy(),
+      onComplete: () => {
+        if (dirt && dirt.active) {
+          dirt.destroy();
+        }
+      },
     });
 
     this.scene.tweens.add({
@@ -117,6 +121,9 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
       duration,
       ease: "Sine.Out",
       onComplete: () => {
+        if (!this.scene || !this.scene.sys || !this.scene.sys.isActive() || !this.active) {
+          return;
+        }
         this.canMove = true;
         this.pickNewDirection(this.scene.time.now);
       },
@@ -127,6 +134,9 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     this.healthPoints -= amount;
     this.setTintFill(0xffd5d5);
     this.scene.time.delayedCall(70, () => {
+      if (!this.scene || !this.scene.sys || !this.scene.sys.isActive()) {
+        return;
+      }
       if (!this.active) {
         return;
       }
@@ -204,7 +214,11 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
       targets: stain,
       alpha: 0.3,
       duration: 1800,
-      onComplete: () => stain.destroy(),
+      onComplete: () => {
+        if (stain && stain.active) {
+          stain.destroy();
+        }
+      },
     });
 
     if (this.scene && this.scene.spawnZombieDrop) {

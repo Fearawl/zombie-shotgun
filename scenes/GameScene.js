@@ -597,6 +597,10 @@ export class GameScene extends Phaser.Scene {
     this.updateUi();
   }
 
+  isSceneActive() {
+    return Boolean(this.sys && this.sys.isActive());
+  }
+
   updatePlayerMovement() {
     let moveX = 0;
     let moveY = 0;
@@ -943,7 +947,11 @@ export class GameScene extends Phaser.Scene {
     arc.beginPath();
     arc.arc(this.player.x, this.player.y, BAT_RADIUS, angle - BAT_ARC / 2, angle + BAT_ARC / 2, false);
     arc.strokePath();
-    this.time.delayedCall(90, () => arc.destroy());
+    this.time.delayedCall(90, () => {
+      if (arc && arc.active) {
+        arc.destroy();
+      }
+    });
   }
 
   showMuzzleFlash(angle) {
@@ -961,7 +969,11 @@ export class GameScene extends Phaser.Scene {
       y + Math.sin(angle - 0.34) * 30
     );
 
-    this.time.delayedCall(70, () => flash.destroy());
+    this.time.delayedCall(70, () => {
+      if (flash && flash.active) {
+        flash.destroy();
+      }
+    });
   }
 
   spawnProjectileVisual(textureKey, angle, distance, duration, targetAlpha) {
@@ -980,7 +992,11 @@ export class GameScene extends Phaser.Scene {
       alpha: targetAlpha,
       duration,
       ease: "Linear",
-      onComplete: () => projectile.destroy(),
+      onComplete: () => {
+        if (projectile && projectile.active) {
+          projectile.destroy();
+        }
+      },
     });
   }
 
@@ -990,7 +1006,11 @@ export class GameScene extends Phaser.Scene {
     blast.fillCircle(x, y, GRENADE_RADIUS);
     blast.lineStyle(4, 0xff7a37, 0.75);
     blast.strokeCircle(x, y, GRENADE_RADIUS);
-    this.time.delayedCall(120, () => blast.destroy());
+    this.time.delayedCall(120, () => {
+      if (blast && blast.active) {
+        blast.destroy();
+      }
+    });
     this.cameras.main.shake(140, 0.004);
 
     this.zombies.getChildren().forEach((zombie) => {
@@ -1029,6 +1049,9 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.time.delayedCall(pickup.respawnDelayMs, () => {
+      if (!this.isSceneActive()) {
+        return;
+      }
       if (!pickup.scene || pickup.active) {
         return;
       }
@@ -1146,7 +1169,11 @@ export class GameScene extends Phaser.Scene {
       alpha: 0,
       duration: 900,
       ease: "Sine.Out",
-      onComplete: () => text.destroy(),
+      onComplete: () => {
+        if (text && text.active) {
+          text.destroy();
+        }
+      },
     });
   }
 
@@ -1188,6 +1215,12 @@ export class GameScene extends Phaser.Scene {
     this.bossText.setColor(color);
 
     this.time.delayedCall(120, () => {
+      if (!this.isSceneActive()) {
+        return;
+      }
+      if (!this.healthText || !this.ammoText || !this.killsText || !this.bossText) {
+        return;
+      }
       this.healthText.setColor(previousColors[0]);
       this.ammoText.setColor(previousColors[1]);
       this.killsText.setColor(previousColors[2]);
@@ -1227,6 +1260,9 @@ export class GameScene extends Phaser.Scene {
     this.pickups.add(pickup);
 
     this.time.delayedCall(DROPPED_PICKUP_LIFETIME_MS, () => {
+      if (!this.isSceneActive()) {
+        return;
+      }
       if (pickup.active) {
         pickup.consume();
       }
