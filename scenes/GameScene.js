@@ -47,6 +47,7 @@ export class GameScene extends Phaser.Scene {
     super("GameScene");
     this.kills = 0;
     this.lastShotAt = 0;
+    this.lastEmptyTriggerAt = 0;
     this.isRoundFinished = false;
     this.rangePresetIndex = 1;
     this.bossesSpawned = 0;
@@ -59,6 +60,7 @@ export class GameScene extends Phaser.Scene {
     this.kills = 0;
     this.isRoundFinished = false;
     this.lastShotAt = -SHOT_COOLDOWN_MS;
+    this.lastEmptyTriggerAt = -SHOT_COOLDOWN_MS;
     this.rangePresetIndex = 1;
     this.bossesSpawned = 0;
     this.roundStartedAt = this.time.now;
@@ -462,10 +464,6 @@ export class GameScene extends Phaser.Scene {
       if (this.isPaused) {
         return;
       }
-      if (pointer.leftButtonDown()) {
-        this.useCurrentWeapon(pointer);
-        return;
-      }
 
       if (pointer.rightButtonDown()) {
         this.cycleShotRange();
@@ -514,6 +512,7 @@ export class GameScene extends Phaser.Scene {
 
     this.updatePlayerMovement();
     this.updateAim();
+    this.updateContinuousFire();
     this.updatePlayerVisuals();
     this.updateShotRangeIndicator();
     this.updateUi();
@@ -590,6 +589,20 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
+  updateContinuousFire() {
+    const pointer = this.input.activePointer;
+    if (!pointer || !pointer.leftButtonDown()) {
+      return;
+    }
+
+    if (!this.canCurrentWeaponFire()) {
+      this.handleEmptyTrigger();
+      return;
+    }
+
+    this.useCurrentWeapon(pointer);
+  }
+
   updateUi() {
     const bossSecondsLeft = this.bossTimer
       ? Math.max(0, Math.ceil(this.bossTimer.getRemaining() / 1000))
@@ -617,6 +630,27 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.throwGrenade(pointer);
+  }
+
+  canCurrentWeaponFire() {
+    if (this.player.currentWeapon === WEAPONS.shotgun.key) {
+      return this.player.weapons.shotgun.clipAmmo > 0;
+    }
+
+    if (this.player.currentWeapon === WEAPONS.pistol.key) {
+      return this.player.weapons.pistol.clipAmmo > 0;
+    }
+
+    return this.player.weapons.grenade.ammo > 0;
+  }
+
+  handleEmptyTrigger() {
+    if (this.time.now - this.lastEmptyTriggerAt < 180) {
+      return;
+    }
+
+    this.lastEmptyTriggerAt = this.time.now;
+    this.flashUi("#ff8b7d");
   }
 
   fireShotgun(pointer) {
