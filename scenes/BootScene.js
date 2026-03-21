@@ -21,6 +21,7 @@ export class BootScene extends Phaser.Scene {
     this.makeCircleTexture("zombie-body", 40, 0x7fb36b, 0x2c5132);
     this.makeCircleTexture("pellet", 8, 0xffe08c, 0x7f5a23);
     this.makeCircleTexture("pistol-bullet", 6, 0xfff4bf, 0x85672f);
+    this.makeCircleTexture("rifle-bullet", 6, 0xffd58a, 0x8d4f1f);
     this.makeGrenadeTexture("grenade-orb", 28);
     this.makeRoundedRectTexture("ammo-box", 50, 34, 8, 0xca8b4d, 0x5f3a1d);
     this.makeRoundedRectTexture("pistol-ammo-box", 50, 34, 8, 0x6f8fd8, 0x23385d);

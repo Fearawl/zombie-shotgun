@@ -13,8 +13,12 @@ const SHOTGUN_DAMAGE = 5;
 const PISTOL_CLIP_SIZE = 15;
 const PISTOL_STARTER_RESERVE = 15;
 const PISTOL_DAMAGE = 8;
+const AKM_CLIP_SIZE = 30;
+const AKM_STARTER_RESERVE = 180;
+const AKM_DAMAGE = 4;
 const SHOT_COOLDOWN_MS = 700;
 const PISTOL_COOLDOWN_MS = 500;
+const AKM_COOLDOWN_MS = 110;
 const GRENADE_COOLDOWN_MS = 450;
 const SHOTGUN_PELLET_COUNT = 8;
 const SHOT_SPREAD = 0.34;
@@ -44,6 +48,10 @@ const ENERGY_BOOST_MS = 5000;
 const ENERGY_SPEED_MULTIPLIER = 1.5;
 const HOUSE_BREACH_DELAY_MS = 15000;
 const HOUSE_LOOT_WEAPON_CHANCE = 0.45;
+const ACID_POOL_DAMAGE_PER_TICK = 0.5;
+const ACID_POOL_TICK_MS = 1000;
+const ACID_POOL_LIFETIME_MS = 5000;
+const BASE_GATE_HEALTH = 20;
 const WORLD_WIDTH = 4200;
 const WORLD_HEIGHT = 2800;
 const SURVIVAL_GOAL_MS = 7 * 60 * 1000;
@@ -60,6 +68,7 @@ const WEAPONS = {
   bat: { key: "bat", label: "Bat" },
   shotgun: { key: "shotgun", label: "Shotgun", clipSize: SHOTGUN_CLIP_SIZE },
   pistol: { key: "pistol", label: "Pistol", clipSize: PISTOL_CLIP_SIZE },
+  akm: { key: "akm", label: "AKM", clipSize: AKM_CLIP_SIZE },
   grenade: { key: "grenade", label: "Grenade" },
 };
 
@@ -118,6 +127,8 @@ export class GameScene extends Phaser.Scene {
     this.obstacles = this.physics.add.staticGroup();
     this.houses = [];
     this.graves = [];
+    this.acidPools = [];
+    this.militaryBase = null;
     this.zombies = this.physics.add.group({
       classType: Zombie,
       runChildUpdate: true,
@@ -149,6 +160,11 @@ export class GameScene extends Phaser.Scene {
         clipAmmo: 0,
         reserveAmmo: 0,
       },
+      akm: {
+        unlocked: false,
+        clipAmmo: 0,
+        reserveAmmo: 0,
+      },
       grenade: {
         unlocked: false,
         ammo: 0,
@@ -171,6 +187,7 @@ export class GameScene extends Phaser.Scene {
 
   createWorldProps() {
     this.createHouses();
+    this.createMilitaryBase();
     this.createGraves();
     this.createBoundaryTrees();
     this.createScatteredTrees();
@@ -236,6 +253,88 @@ export class GameScene extends Phaser.Scene {
     ];
 
     graves.forEach(([x, y, scale]) => this.addGrave(x, y, scale));
+  }
+
+  createMilitaryBase() {
+    const x = 3380;
+    const y = 760;
+    const width = 520;
+    const height = 360;
+    const halfWidth = width / 2;
+    const halfHeight = height / 2;
+    const wallThickness = 14;
+    const doorWidth = 120;
+    const doorY = y + halfHeight - wallThickness / 2;
+    const leftGateWidth = (width - doorWidth) / 2;
+    const leftGateCenterX = x - doorWidth / 2 - leftGateWidth / 2;
+    const rightGateCenterX = x + doorWidth / 2 + leftGateWidth / 2;
+
+    const floor = this.add.graphics().setDepth(1.8);
+    floor.fillStyle(0x4d594c, 0.55);
+    floor.fillRect(x - halfWidth + 10, y - halfHeight + 10, width - 20, height - 20);
+    floor.lineStyle(3, 0x69756a, 0.35);
+    floor.strokeRect(x - halfWidth + 18, y - halfHeight + 18, width - 36, height - 36);
+
+    const roomLines = this.add.graphics().setDepth(2);
+    roomLines.lineStyle(4, 0x8b988c, 0.8);
+    roomLines.lineBetween(x - 40, y - halfHeight + 14, x - 40, y + 20);
+    roomLines.lineBetween(x + 70, y - 28, x + halfWidth - 24, y - 28);
+    roomLines.lineBetween(x + 70, y + 52, x + halfWidth - 24, y + 52);
+
+    const roof = this.add.graphics().setDepth(5);
+    roof.fillStyle(0x5c665d, 1);
+    roof.fillRect(x - halfWidth, y - halfHeight, width, height);
+    roof.lineStyle(6, 0x2c332d, 1);
+    roof.strokeRect(x - halfWidth, y - halfHeight, width, height);
+    roof.fillStyle(0x9eb3a0, 0.3);
+    roof.fillRect(x - 40, y - halfHeight + 32, 140, 42);
+    roof.fillRect(x + 120, y - halfHeight + 92, 110, 38);
+
+    this.addWall(x, y - halfHeight + wallThickness / 2, width, wallThickness);
+    this.addWall(x - halfWidth + wallThickness / 2, y, wallThickness, height);
+    this.addWall(x + halfWidth - wallThickness / 2, y, wallThickness, height);
+    this.addWall(leftGateCenterX, doorY, leftGateWidth, wallThickness);
+    this.addWall(rightGateCenterX, doorY, leftGateWidth, wallThickness);
+    this.addWall(x - 40, y - halfHeight / 2 + 10, wallThickness, halfHeight + 10);
+    this.addWall(x + width * 0.23, y - 28, width * 0.28, wallThickness);
+    this.addWall(x + width * 0.23, y + 52, width * 0.28, wallThickness);
+
+    const gate = this.obstacles.create(x, doorY, "wall-block");
+    gate.setDisplaySize(doorWidth, wallThickness + 6);
+    gate.setDepth(3.2);
+    gate.refreshBody();
+    gate.baseGate = true;
+    gate.gateHealth = BASE_GATE_HEALTH;
+
+    const loot = {
+      type: "weapon",
+      weaponKey: WEAPONS.akm.key,
+      label: "Found AKM",
+    };
+    const lootPosition = new Phaser.Math.Vector2(x + 128, y - 74);
+    const lootVisual = this.createHouseLootVisual(loot, lootPosition.x, lootPosition.y);
+    lootVisual.setVisible(false);
+
+    this.militaryBase = {
+      x,
+      y,
+      width,
+      height,
+      roof,
+      floor,
+      roomLines,
+      gate,
+      gateBroken: false,
+      interiorBounds: new Phaser.Geom.Rectangle(x - halfWidth + 18, y - halfHeight + 18, width - 36, height - 36),
+      loot,
+      lootVisual,
+      lootPosition,
+      collected: false,
+    };
+
+    this.spawnZombie(x - 100, y - 60, { emerge: false, isAcid: true, maxHealth: 26, moveSpeed: 50 });
+    this.spawnZombie(x + 54, y - 20, { emerge: false, isAcid: true, maxHealth: 24, moveSpeed: 48 });
+    this.spawnZombie(x + 110, y + 88, { emerge: false, isAcid: true, maxHealth: 24, moveSpeed: 50 });
   }
 
   createBoundaryTrees() {
@@ -310,7 +409,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   addTree(x, y, scale = 1) {
-    if (this.isPointInsideAnyHouse(x, y, 42)) {
+    if (this.isPointInsideAnyHouse(x, y, 42) || this.isPointInsideMilitaryBase(x, y, 48)) {
       return null;
     }
 
@@ -321,7 +420,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   addGrave(x, y, scale = 1) {
-    if (this.isPointInsideAnyHouse(x, y, 44)) {
+    if (this.isPointInsideAnyHouse(x, y, 44) || this.isPointInsideMilitaryBase(x, y, 54)) {
       return null;
     }
 
@@ -435,6 +534,18 @@ export class GameScene extends Phaser.Scene {
       return visual;
     }
 
+    if (loot.type === "weapon" && loot.weaponKey === WEAPONS.akm.key) {
+      visual.lineStyle(6, 0x23282b, 1);
+      visual.lineBetween(x - 24, y - 4, x + 22, y - 4);
+      visual.lineStyle(4, 0x3e474d, 1);
+      visual.lineBetween(x - 22, y - 6, x + 20, y - 6);
+      visual.lineStyle(5, 0x6d4c2f, 1);
+      visual.lineBetween(x - 12, y + 1, x - 2, y + 16);
+      visual.lineStyle(4, 0x1e2327, 1);
+      visual.lineBetween(x + 2, y + 2, x + 6, y + 14);
+      return visual;
+    }
+
     if (loot.type === "weapon" && loot.weaponKey === WEAPONS.grenade.key) {
       visual.fillStyle(0x7b7b35, 1);
       visual.lineStyle(4, 0x101316, 1);
@@ -481,6 +592,21 @@ export class GameScene extends Phaser.Scene {
     return this.houses.some((house) =>
       Phaser.Geom.Rectangle.Contains(house.interiorBounds, this.player.x, this.player.y)
     );
+  }
+
+  isPointInsideMilitaryBase(x, y, padding = 0) {
+    if (!this.militaryBase) {
+      return false;
+    }
+
+    const base = this.militaryBase;
+    const bounds = new Phaser.Geom.Rectangle(
+      base.x - base.width / 2 - padding,
+      base.y - base.height / 2 - padding,
+      base.width + padding * 2,
+      base.height + padding * 2
+    );
+    return Phaser.Geom.Rectangle.Contains(bounds, x, y);
   }
 
   getHouseAtPoint(x, y) {
@@ -556,7 +682,7 @@ export class GameScene extends Phaser.Scene {
       fontSize: "18px",
       color: "#f2cfa4",
     });
-    this.reloadText = this.add.text(20, 194, "1 Bat  2 Shotgun  3 Pistol  4 Grenade  E Take  R Reload", {
+    this.reloadText = this.add.text(20, 194, "1 Bat  2 Shotgun  3 Pistol  4 AKM  5 Grenade  E Take  R Reload", {
       fontFamily: "Verdana, sans-serif",
       fontSize: "14px",
       color: "#9fc2d7",
@@ -732,7 +858,8 @@ export class GameScene extends Phaser.Scene {
     const batButton = this.createMobileButton(360, this.scale.height - 54, 72, 34, "BAT", () => this.selectWeapon(WEAPONS.bat.key));
     const shotgunButton = this.createMobileButton(440, this.scale.height - 54, 72, 34, "SG", () => this.selectWeapon(WEAPONS.shotgun.key));
     const pistolButton = this.createMobileButton(520, this.scale.height - 54, 72, 34, "PI", () => this.selectWeapon(WEAPONS.pistol.key));
-    const grenadeButton = this.createMobileButton(600, this.scale.height - 54, 72, 34, "GR", () => this.selectWeapon(WEAPONS.grenade.key));
+    const akmButton = this.createMobileButton(600, this.scale.height - 54, 72, 34, "AK", () => this.selectWeapon(WEAPONS.akm.key));
+    const grenadeButton = this.createMobileButton(680, this.scale.height - 54, 72, 34, "GR", () => this.selectWeapon(WEAPONS.grenade.key));
 
     moveZone.on("pointerdown", (pointer) => {
       this.mobile.movePointerId = pointer.id;
@@ -770,6 +897,7 @@ export class GameScene extends Phaser.Scene {
       batButton,
       shotgunButton,
       pistolButton,
+      akmButton,
       grenadeButton,
     ]);
   }
@@ -933,8 +1061,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   setupInput() {
-    this.keys = this.input.keyboard.addKeys("W,A,S,D,R,E,P,ESC,ONE,TWO,THREE");
-    this.keys.FOUR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR);
+    this.keys = this.input.keyboard.addKeys("W,A,S,D,R,E,P,ESC,ONE,TWO,THREE,FOUR,FIVE");
     if (this.input.mouse) {
       this.input.mouse.disableContextMenu();
     }
@@ -972,7 +1099,8 @@ export class GameScene extends Phaser.Scene {
     this.input.keyboard.on("keydown-ONE", () => this.selectWeapon(WEAPONS.bat.key));
     this.input.keyboard.on("keydown-TWO", () => this.selectWeapon(WEAPONS.shotgun.key));
     this.input.keyboard.on("keydown-THREE", () => this.selectWeapon(WEAPONS.pistol.key));
-    this.input.keyboard.on("keydown-FOUR", () => this.selectWeapon(WEAPONS.grenade.key));
+    this.input.keyboard.on("keydown-FOUR", () => this.selectWeapon(WEAPONS.akm.key));
+    this.input.keyboard.on("keydown-FIVE", () => this.selectWeapon(WEAPONS.grenade.key));
   }
 
   setupCollisions() {
@@ -1016,6 +1144,8 @@ export class GameScene extends Phaser.Scene {
     this.updatePlayerVisuals();
     this.updatePlayerHealthIndicator();
     this.updateHouses();
+    this.updateMilitaryBase();
+    this.updateAcidPools();
     this.updateExtractionObjective();
     this.updateShotRangeIndicator();
     this.updateUi();
@@ -1140,6 +1270,49 @@ export class GameScene extends Phaser.Scene {
       this.playerGun.lineBetween(grenadeX - 3, grenadeY + 7, grenadeX + 3, grenadeY + 7);
       this.playerGun.strokeCircle(grenadeX + 6, grenadeY - 10, 4);
       this.playerGun.lineBetween(grenadeX + 8, grenadeY - 7, grenadeX + 16, grenadeY + 8);
+      return;
+    }
+    if (this.player.currentWeapon === WEAPONS.akm.key) {
+      const stockBackX = originX - Math.cos(angle) * 24;
+      const stockBackY = originY - Math.sin(angle) * 24;
+      const receiverBackX = originX - Math.cos(angle) * 2;
+      const receiverBackY = originY - Math.sin(angle) * 2;
+      const muzzleX = originX + Math.cos(angle) * 46;
+      const muzzleY = originY + Math.sin(angle) * 46;
+      const downAngle = angle + Math.PI / 2;
+      const upAngle = angle - Math.PI / 2;
+
+      this.playerGun.lineStyle(9, 0x202529, 1);
+      this.playerGun.lineBetween(receiverBackX, receiverBackY, muzzleX, muzzleY);
+      this.playerGun.lineStyle(3, 0x3d464c, 1);
+      this.playerGun.lineBetween(receiverBackX, receiverBackY, muzzleX, muzzleY);
+      this.playerGun.lineStyle(8, 0x2b2017, 1);
+      this.playerGun.lineBetween(stockBackX, stockBackY, receiverBackX, receiverBackY);
+      this.playerGun.lineStyle(3, 0x6f543c, 1);
+      this.playerGun.lineBetween(stockBackX, stockBackY, receiverBackX, receiverBackY);
+      this.playerGun.lineStyle(4, 0x22272b, 1);
+      this.playerGun.lineBetween(
+        originX + Math.cos(angle) * 4 + Math.cos(downAngle) * 3,
+        originY + Math.sin(angle) * 4 + Math.sin(downAngle) * 3,
+        originX + Math.cos(angle) * 9 + Math.cos(downAngle) * 12,
+        originY + Math.sin(angle) * 9 + Math.sin(downAngle) * 12
+      );
+      this.playerGun.lineStyle(5, 0x1d2327, 1);
+      this.playerGun.lineBetween(
+        muzzleX - Math.cos(angle) * 20 + Math.cos(downAngle) * 4,
+        muzzleY - Math.sin(angle) * 20 + Math.sin(downAngle) * 4,
+        muzzleX - Math.cos(angle) * 6 + Math.cos(downAngle) * 4,
+        muzzleY - Math.sin(angle) * 6 + Math.sin(downAngle) * 4
+      );
+      this.playerGun.lineStyle(2, 0x515a61, 1);
+      this.playerGun.lineBetween(
+        receiverBackX + Math.cos(upAngle) * 4,
+        receiverBackY + Math.sin(upAngle) * 4,
+        receiverBackX + Math.cos(upAngle) * 8,
+        receiverBackY + Math.sin(upAngle) * 8
+      );
+      this.playerGun.fillStyle(0x111417, 1);
+      this.playerGun.fillCircle(muzzleX, muzzleY, 2.5);
       return;
     }
     if (this.player.currentWeapon === WEAPONS.shotgun.key) {
@@ -1338,7 +1511,7 @@ export class GameScene extends Phaser.Scene {
     this.playerHealthBar.fillRoundedRect(x, y, width * ratio, 7, 3);
 
     this.playerHealthLabel.setPosition(this.player.x, this.player.y - 48);
-    this.playerHealthLabel.setText(`${this.player.healthPoints}/${PLAYER_MAX_HEALTH}`);
+    this.playerHealthLabel.setText(`${this.formatHealthValue(this.player.healthPoints)}/${PLAYER_MAX_HEALTH}`);
   }
 
   updateContinuousFire() {
@@ -1370,14 +1543,15 @@ export class GameScene extends Phaser.Scene {
     );
     const shotgun = this.player.weapons.shotgun;
     const pistol = this.player.weapons.pistol;
+    const akm = this.player.weapons.akm;
     const grenade = this.player.weapons.grenade;
     const extractionHoldLeft = this.extractionHoldStartedAt
       ? Math.max(0, Math.ceil((EXTRACTION_HOLD_MS - (this.time.now - this.extractionHoldStartedAt)) / 1000))
       : EXTRACTION_HOLD_MS / 1000;
-    this.healthText.setText(`HP: ${this.player.healthPoints}/${PLAYER_MAX_HEALTH}`);
+    this.healthText.setText(`HP: ${this.formatHealthValue(this.player.healthPoints)}/${PLAYER_MAX_HEALTH}`);
     this.weaponText.setText(`Weapon: ${WEAPONS[this.player.currentWeapon].label}`);
     this.ammoText.setText(
-      `BT ready  SG ${this.formatRangedAmmo(shotgun)}  PI ${this.formatRangedAmmo(pistol)}  GR ${this.formatGrenadeAmmo(grenade)}`
+      `BT ready  SG ${this.formatRangedAmmo(shotgun)}  PI ${this.formatRangedAmmo(pistol)}  AK ${this.formatRangedAmmo(akm)}  GR ${this.formatGrenadeAmmo(grenade)}`
     );
     this.killsText.setText(`Zombies down: ${this.kills}`);
     this.bossText.setText(
@@ -1388,7 +1562,7 @@ export class GameScene extends Phaser.Scene {
     this.rangeText.setText(
       this.extractionReady
         ? `Reach SOS and stand still-ish for extraction  Range: ${this.getCurrentRangePreset().label}`
-        : `Range: ${this.getCurrentRangePreset().label} (RMB)  Houses: loot weapon or ammo`
+        : `Range: ${this.getCurrentRangePreset().label} (RMB)  Base: break gate with bat`
     );
   }
 
@@ -1408,6 +1582,11 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    if (this.player.currentWeapon === WEAPONS.akm.key) {
+      this.fireAkm(pointer);
+      return;
+    }
+
     this.throwGrenade(pointer);
   }
 
@@ -1422,6 +1601,10 @@ export class GameScene extends Phaser.Scene {
 
     if (this.player.currentWeapon === WEAPONS.pistol.key) {
       return this.player.weapons.pistol.unlocked && this.player.weapons.pistol.clipAmmo > 0;
+    }
+
+    if (this.player.currentWeapon === WEAPONS.akm.key) {
+      return this.player.weapons.akm.unlocked && this.player.weapons.akm.clipAmmo > 0;
     }
 
     return this.player.weapons.grenade.unlocked && this.player.weapons.grenade.ammo > 0;
@@ -1474,6 +1657,34 @@ export class GameScene extends Phaser.Scene {
         this.kills += 1;
       }
     });
+
+    this.tryDamageBaseGate(swingAngle);
+  }
+
+  tryDamageBaseGate(swingAngle) {
+    if (!this.militaryBase || this.militaryBase.gateBroken || !this.militaryBase.gate?.active) {
+      return;
+    }
+
+    const gate = this.militaryBase.gate;
+    const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, gate.x, gate.y);
+    if (distance > BAT_RADIUS) {
+      return;
+    }
+
+    const angleToGate = Phaser.Math.Angle.Between(this.player.x, this.player.y, gate.x, gate.y);
+    const angleDelta = Phaser.Math.Angle.Wrap(angleToGate - swingAngle);
+    if (Math.abs(angleDelta) > BAT_ARC / 2) {
+      return;
+    }
+
+    gate.gateHealth -= BAT_DAMAGE;
+    this.flashUi("#f0d28f");
+    if (gate.gateHealth <= 0) {
+      this.militaryBase.gateBroken = true;
+      gate.destroy();
+      this.showHouseLootText(this.militaryBase.x, this.militaryBase.y + this.militaryBase.height / 2 - 18, "Base gate broken");
+    }
   }
 
   fireShotgun(pointer) {
@@ -1533,6 +1744,32 @@ export class GameScene extends Phaser.Scene {
     this.spawnProjectileVisual("pistol-bullet", angle, rangeDistance, shotLifetimeMs, 0.2);
     this.applySingleBulletDamage(angle, rangeDistance, PISTOL_DAMAGE, 14);
     this.showMuzzleFlash(angle);
+  }
+
+  fireAkm(pointer) {
+    if (this.isRoundFinished || this.isPaused) {
+      return;
+    }
+
+    if (this.time.now - this.lastShotAt < AKM_COOLDOWN_MS) {
+      return;
+    }
+
+    if (!this.player.weapons.akm.unlocked || this.player.weapons.akm.clipAmmo <= 0) {
+      this.flashUi("#ff8b7d");
+      return;
+    }
+
+    this.lastShotAt = this.time.now;
+    this.player.weapons.akm.clipAmmo -= 1;
+
+    const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, pointer.worldX, pointer.worldY);
+    const spreadAngle = angle + Phaser.Math.FloatBetween(-0.05, 0.05);
+    const rangeDistance = Math.round(this.scale.width * 0.6);
+    const shotLifetimeMs = Math.round((rangeDistance / 1400) * 1000);
+    this.spawnProjectileVisual("rifle-bullet", spreadAngle, rangeDistance, shotLifetimeMs, 0.15);
+    this.applySingleBulletDamage(spreadAngle, rangeDistance, AKM_DAMAGE, 12);
+    this.showMuzzleFlash(spreadAngle);
   }
 
   throwGrenade(pointer) {
@@ -1718,6 +1955,23 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  spawnAcidPool(x, y) {
+    const pool = this.add.graphics().setDepth(2.4);
+    pool.fillStyle(0x9be94e, 0.32);
+    pool.lineStyle(3, 0x5e9f2c, 0.8);
+    pool.fillEllipse(x, y + 10, 62, 34);
+    pool.strokeEllipse(x, y + 10, 62, 34);
+
+    this.acidPools.push({
+      x,
+      y: y + 10,
+      radius: 34,
+      graphics: pool,
+      expiresAt: this.time.now + ACID_POOL_LIFETIME_MS,
+      nextTickAt: this.time.now + ACID_POOL_TICK_MS,
+    });
+  }
+
   handlePickup(player, pickup) {
     if (!pickup.active) {
       return;
@@ -1779,26 +2033,95 @@ export class GameScene extends Phaser.Scene {
         house.lootVisual.setVisible(!house.collected && isInside);
       }
 
-      if (!house.collected && isInside && Phaser.Input.Keyboard.JustDown(this.keys.E)) {
-        const distance = Phaser.Math.Distance.Between(
-          this.player.x,
-          this.player.y,
-          house.lootPosition.x,
-          house.lootPosition.y
-        );
+    });
+  }
 
-        if (distance <= 82) {
-          house.collected = true;
-          this.applyHouseLoot(house.loot);
-          if (house.lootVisual) {
-            house.lootVisual.destroy();
-            house.lootVisual = null;
+  updateMilitaryBase() {
+    if (!this.militaryBase) {
+      return;
+    }
+
+    const base = this.militaryBase;
+    const isInside = Phaser.Geom.Rectangle.Contains(base.interiorBounds, this.player.x, this.player.y);
+    base.roof.setAlpha(isInside ? 0.18 : 1);
+    base.roomLines.setAlpha(isInside ? 1 : 0.2);
+    if (base.lootVisual) {
+      base.lootVisual.setVisible(!base.collected && isInside && base.gateBroken);
+    }
+  }
+
+  updateAcidPools() {
+    if (!this.acidPools.length) {
+      return;
+    }
+
+    this.acidPools = this.acidPools.filter((pool) => {
+      if (!pool || !pool.graphics || !pool.graphics.active) {
+        return false;
+      }
+
+      if (this.time.now >= pool.expiresAt) {
+        pool.graphics.destroy();
+        return false;
+      }
+
+      if (this.time.now >= pool.nextTickAt) {
+        pool.nextTickAt += ACID_POOL_TICK_MS;
+        const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, pool.x, pool.y);
+        if (distance <= pool.radius) {
+          this.player.healthPoints = Math.max(0, this.player.healthPoints - ACID_POOL_DAMAGE_PER_TICK);
+          this.flashUi("#b4f56d");
+          if (this.player.healthPoints <= 0) {
+            this.finishRound();
           }
-          this.showHouseLootText(house.x, house.y - house.height / 2 - 24, house.loot.label);
-          this.flashUi(house.loot.type === "weapon" ? "#9cd4ff" : "#f9d27b");
         }
       }
+
+      return true;
     });
+  }
+
+  tryPickupCurrentHouseLoot() {
+    const currentHouse = this.getHouseAtPoint(this.player.x, this.player.y);
+    if (currentHouse && !currentHouse.collected) {
+      const distance = Phaser.Math.Distance.Between(
+        this.player.x,
+        this.player.y,
+        currentHouse.lootPosition.x,
+        currentHouse.lootPosition.y
+      );
+      if (distance <= 82) {
+        currentHouse.collected = true;
+        this.applyHouseLoot(currentHouse.loot);
+        if (currentHouse.lootVisual) {
+          currentHouse.lootVisual.destroy();
+          currentHouse.lootVisual = null;
+        }
+        this.showHouseLootText(currentHouse.x, currentHouse.y - currentHouse.height / 2 - 24, currentHouse.loot.label);
+        this.flashUi(currentHouse.loot.type === "weapon" ? "#9cd4ff" : "#f9d27b");
+        return;
+      }
+    }
+
+    if (!this.militaryBase || !this.militaryBase.gateBroken || this.militaryBase.collected) {
+      return;
+    }
+
+    const base = this.militaryBase;
+    const isInsideBase = Phaser.Geom.Rectangle.Contains(base.interiorBounds, this.player.x, this.player.y);
+    const distanceToLoot = Phaser.Math.Distance.Between(this.player.x, this.player.y, base.lootPosition.x, base.lootPosition.y);
+    if (!isInsideBase || distanceToLoot > 88) {
+      return;
+    }
+
+    base.collected = true;
+    this.unlockWeapon(base.loot.weaponKey);
+    if (base.lootVisual) {
+      base.lootVisual.destroy();
+      base.lootVisual = null;
+    }
+    this.showHouseLootText(base.x, base.y - base.height / 2 - 24, base.loot.label);
+    this.flashUi("#9cd4ff");
   }
 
   rollHouseLoot() {
@@ -1866,6 +2189,12 @@ export class GameScene extends Phaser.Scene {
     if (weaponKey === WEAPONS.pistol.key) {
       weapon.clipAmmo = PISTOL_CLIP_SIZE;
       weapon.reserveAmmo += PISTOL_STARTER_RESERVE;
+      return;
+    }
+
+    if (weaponKey === WEAPONS.akm.key) {
+      weapon.clipAmmo = AKM_CLIP_SIZE;
+      weapon.reserveAmmo += AKM_STARTER_RESERVE;
       return;
     }
 
@@ -2214,6 +2543,10 @@ export class GameScene extends Phaser.Scene {
     return `${weapon.clipAmmo}/${weapon.reserveAmmo}`;
   }
 
+  formatHealthValue(value) {
+    return Number.isInteger(value) ? `${value}` : value.toFixed(1);
+  }
+
   formatGrenadeAmmo(weapon) {
     if (!weapon.unlocked) {
       return `LOCK/${weapon.ammo}`;
@@ -2357,24 +2690,28 @@ export class GameScene extends Phaser.Scene {
     const isFast = options.isFast ?? false;
     const isBlue = options.isBlue ?? false;
     const isSmall = options.isSmall ?? false;
+    const isAcid = options.isAcid ?? false;
     const dropType = isSmall
       ? "none"
+      : isAcid
+        ? "energyDrink"
       : isFast
         ? (Math.random() < 0.5 ? "pistolAmmo" : "grenade")
         : "shotgunAmmo";
     const zombie = new Zombie(this, x, y, {
       isBoss: options.isBoss ?? false,
-      maxHealth: options.maxHealth ?? (isSmall ? 6 : isBlue ? 22 : options.isBoss ? 140 : 18),
+      maxHealth: options.maxHealth ?? (isSmall ? 6 : isAcid ? 26 : isBlue ? 22 : options.isBoss ? 140 : 18),
       isFast,
       isBlue,
       isSmall,
-      moveSpeed: options.moveSpeed ?? (isSmall ? 92 : isFast ? 74 : isBlue ? 54 : undefined),
-      tint: options.tint ?? (isSmall ? 0x9fd680 : isBlue ? 0x4a8ed9 : isFast ? 0xd58a35 : undefined),
+      isAcid,
+      moveSpeed: options.moveSpeed ?? (isSmall ? 92 : isAcid ? 52 : isFast ? 74 : isBlue ? 54 : undefined),
+      tint: options.tint ?? (isSmall ? 0x9fd680 : isAcid ? 0x92e447 : isBlue ? 0x4a8ed9 : isFast ? 0xd58a35 : undefined),
       aggroRadius: this.settings.aggroRadius,
       attackCooldownMs: ZOMBIE_ATTACK_COOLDOWN_MS,
       speedMultiplier: 1,
       dropType,
-      scale: options.scale ?? (isSmall ? 0.7 : isBlue ? 1.06 : undefined),
+      scale: options.scale ?? (isSmall ? 0.7 : isAcid ? 1.02 : isBlue ? 1.06 : undefined),
     });
     this.zombies.add(zombie);
 
