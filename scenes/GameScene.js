@@ -666,13 +666,13 @@ export class GameScene extends Phaser.Scene {
 
     this.playerGun.clear();
     if (this.player.currentWeapon === WEAPONS.bat.key) {
-      const batTipX = originX + Math.cos(angle) * 26;
-      const batTipY = originY + Math.sin(angle) * 26;
-      const batEndX = originX - Math.cos(angle) * 8;
-      const batEndY = originY - Math.sin(angle) * 8;
-      this.playerGun.lineStyle(8, 0x6e4727, 1);
+      const batTipX = originX + Math.cos(angle) * 38;
+      const batTipY = originY + Math.sin(angle) * 38;
+      const batEndX = originX - Math.cos(angle) * 10;
+      const batEndY = originY - Math.sin(angle) * 10;
+      this.playerGun.lineStyle(8, 0x8d949c, 1);
       this.playerGun.lineBetween(batEndX, batEndY, batTipX, batTipY);
-      this.playerGun.lineStyle(4, 0xc69a5d, 1);
+      this.playerGun.lineStyle(4, 0xc9d0d8, 1);
       this.playerGun.lineBetween(
         batTipX + Math.cos(sideAngle) * 2,
         batTipY + Math.sin(sideAngle) * 2,
