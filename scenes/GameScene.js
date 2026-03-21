@@ -154,9 +154,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   createWorldProps() {
+    this.createHouses();
     this.createBoundaryTrees();
     this.createScatteredTrees();
-    this.createHouses();
   }
 
   createBoundaryTrees() {
@@ -214,6 +214,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   addTree(x, y, scale = 1) {
+    if (this.isPointInsideAnyHouse(x, y, 42)) {
+      return null;
+    }
+
     const tree = this.add.image(x, y, "tree");
     tree.setScale(scale);
     tree.setDepth(3);
@@ -230,17 +234,11 @@ export class GameScene extends Phaser.Scene {
     const bottomWallWidth = (width - doorWidth) / 2;
     const bottomWallOffset = doorWidth / 2 + bottomWallWidth / 2;
 
-    const floor = this.add.graphics().setDepth(2);
-    floor.fillStyle(0x82786d, 0.96);
-    floor.fillRoundedRect(x - halfWidth + 6, floorTop, width - 12, height - roofInset - 6, 8);
-    floor.lineStyle(3, 0x90857a, 0.85);
-    for (let lineY = floorTop + 24; lineY < y + halfHeight - 18; lineY += 26) {
-      floor.lineBetween(x - halfWidth + 18, lineY, x + halfWidth - 18, lineY);
-    }
-    floor.lineStyle(5, 0x6f4b29, 1);
-    floor.lineBetween(x + 40, floorTop + 88, x + 96, floorTop + 126);
-    floor.lineStyle(2, 0xcab08a, 1);
-    floor.lineBetween(x + 52, floorTop + 84, x + 104, floorTop + 118);
+    const lootHint = this.add.graphics().setDepth(2);
+    lootHint.lineStyle(5, 0x6f4b29, 1);
+    lootHint.lineBetween(x + 40, floorTop + 88, x + 96, floorTop + 126);
+    lootHint.lineStyle(2, 0xcab08a, 1);
+    lootHint.lineBetween(x + 52, floorTop + 84, x + 104, floorTop + 118);
 
     const roof = this.add.graphics().setDepth(5);
     roof.fillStyle(0x575c62, 1);
@@ -286,6 +284,24 @@ export class GameScene extends Phaser.Scene {
       roof,
       searched: false,
     });
+  }
+
+  isPointInsideAnyHouse(x, y, padding = 0) {
+    return this.houses.some((house) => {
+      const bounds = new Phaser.Geom.Rectangle(
+        house.x - house.width / 2 - padding,
+        house.y - house.height / 2 - padding,
+        house.width + padding * 2,
+        house.height + padding * 2
+      );
+      return Phaser.Geom.Rectangle.Contains(bounds, x, y);
+    });
+  }
+
+  isPlayerInsideHouse() {
+    return this.houses.some((house) =>
+      Phaser.Geom.Rectangle.Contains(house.interiorBounds, this.player.x, this.player.y)
+    );
   }
 
   addWall(x, y, width, height) {
@@ -1410,6 +1426,10 @@ export class GameScene extends Phaser.Scene {
 
   handleZombieAttack(player, zombie) {
     if (!zombie.active || !zombie.canMove) {
+      return;
+    }
+
+    if (this.isPlayerInsideHouse()) {
       return;
     }
 

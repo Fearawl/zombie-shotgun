@@ -63,11 +63,14 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     }
 
     const player = this.scene.player;
+    const playerIsSheltered = this.scene && this.scene.isPlayerInsideHouse
+      ? this.scene.isPlayerInsideHouse()
+      : false;
     const playerDistance = player
       ? Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y)
       : Number.MAX_SAFE_INTEGER;
 
-    if (player && playerDistance <= this.aggroRadius) {
+    if (player && !playerIsSheltered && playerDistance <= this.aggroRadius) {
       const angle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
       this.setVelocity(Math.cos(angle) * this.moveSpeed, Math.sin(angle) * this.moveSpeed);
     } else {
