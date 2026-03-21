@@ -86,8 +86,8 @@ export class GameScene extends Phaser.Scene {
 
     this.drawArena();
     this.createGroups();
-    this.createWorldProps();
     this.createPlayer();
+    this.createWorldProps();
     this.createZombies();
     this.createUi();
     this.createPauseButton();
@@ -234,11 +234,10 @@ export class GameScene extends Phaser.Scene {
     const bottomWallWidth = (width - doorWidth) / 2;
     const bottomWallOffset = doorWidth / 2 + bottomWallWidth / 2;
 
-    const lootHint = this.add.graphics().setDepth(2);
-    lootHint.lineStyle(5, 0x6f4b29, 1);
-    lootHint.lineBetween(x + 40, floorTop + 88, x + 96, floorTop + 126);
-    lootHint.lineStyle(2, 0xcab08a, 1);
-    lootHint.lineBetween(x + 52, floorTop + 84, x + 104, floorTop + 118);
+    const loot = this.rollHouseLoot();
+    const lootX = x + 68;
+    const lootY = floorTop + 104;
+    const lootVisual = this.createHouseLootVisual(loot, lootX, lootY);
 
     const roof = this.add.graphics().setDepth(5);
     roof.fillStyle(0x575c62, 1);
@@ -282,8 +281,55 @@ export class GameScene extends Phaser.Scene {
         height - roofInset - 24
       ),
       roof,
-      searched: false,
+      loot,
+      lootVisual,
+      lootPosition: new Phaser.Math.Vector2(lootX, lootY),
+      collected: false,
     });
+  }
+
+  createHouseLootVisual(loot, x, y) {
+    const visual = this.add.graphics().setDepth(2);
+
+    if (loot.type === "weapon" && loot.weaponKey === WEAPONS.shotgun.key) {
+      visual.lineStyle(6, 0x1f2326, 1);
+      visual.lineBetween(x - 24, y + 6, x + 28, y - 4);
+      visual.lineStyle(2, 0x454c51, 1);
+      visual.lineBetween(x - 24, y + 6, x + 28, y - 4);
+      return visual;
+    }
+
+    if (loot.type === "weapon" && loot.weaponKey === WEAPONS.pistol.key) {
+      visual.lineStyle(7, 0xb8bec3, 1);
+      visual.lineBetween(x - 14, y - 2, x + 16, y - 5);
+      visual.lineStyle(4, 0x1c2024, 1);
+      visual.lineBetween(x - 8, y + 4, x - 2, y + 16);
+      return visual;
+    }
+
+    if (loot.type === "weapon" && loot.weaponKey === WEAPONS.grenade.key) {
+      visual.fillStyle(0x5d646a, 1);
+      visual.fillCircle(x, y, 10);
+      visual.lineStyle(3, 0x23292d, 1);
+      visual.strokeCircle(x, y, 10);
+      return visual;
+    }
+
+    if (loot.pickupType === "shotgunAmmo") {
+      visual.fillStyle(0xca8b4d, 1);
+      visual.fillRoundedRect(x - 14, y - 10, 28, 20, 5);
+      return visual;
+    }
+
+    if (loot.pickupType === "pistolAmmo") {
+      visual.fillStyle(0x6f8fd8, 1);
+      visual.fillRoundedRect(x - 14, y - 10, 28, 20, 5);
+      return visual;
+    }
+
+    visual.fillStyle(0x7b6a8b, 1);
+    visual.fillRoundedRect(x - 12, y - 12, 24, 24, 6);
+    return visual;
   }
 
   isPointInsideAnyHouse(x, y, padding = 0) {
@@ -379,7 +425,7 @@ export class GameScene extends Phaser.Scene {
       fontSize: "18px",
       color: "#f2cfa4",
     });
-    this.reloadText = this.add.text(20, 194, "1 Bat  2 Shotgun  3 Pistol  4 Grenade  R Reload", {
+    this.reloadText = this.add.text(20, 194, "1 Bat  2 Shotgun  3 Pistol  4 Grenade  E Take  R Reload", {
       fontFamily: "Verdana, sans-serif",
       fontSize: "14px",
       color: "#9fc2d7",
@@ -627,7 +673,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   setupInput() {
-    this.keys = this.input.keyboard.addKeys("W,A,S,D,R,P,ESC,ONE,TWO,THREE");
+    this.keys = this.input.keyboard.addKeys("W,A,S,D,R,E,P,ESC,ONE,TWO,THREE");
     this.keys.FOUR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR);
     if (this.input.mouse) {
       this.input.mouse.disableContextMenu();
@@ -1336,12 +1382,28 @@ export class GameScene extends Phaser.Scene {
       const isInside = Phaser.Geom.Rectangle.Contains(house.interiorBounds, this.player.x, this.player.y);
       house.roof.setAlpha(isInside ? 0.16 : 1);
 
-      if (!house.searched && isInside) {
-        house.searched = true;
-        const loot = this.rollHouseLoot();
-        this.applyHouseLoot(loot);
-        this.showHouseLootText(house.x, house.y - house.height / 2 - 24, loot.label);
-        this.flashUi(loot.type === "weapon" ? "#9cd4ff" : "#f9d27b");
+      if (house.lootVisual) {
+        house.lootVisual.setVisible(!house.collected && isInside);
+      }
+
+      if (!house.collected && isInside && Phaser.Input.Keyboard.JustDown(this.keys.E)) {
+        const distance = Phaser.Math.Distance.Between(
+          this.player.x,
+          this.player.y,
+          house.lootPosition.x,
+          house.lootPosition.y
+        );
+
+        if (distance <= 82) {
+          house.collected = true;
+          this.applyHouseLoot(house.loot);
+          if (house.lootVisual) {
+            house.lootVisual.destroy();
+            house.lootVisual = null;
+          }
+          this.showHouseLootText(house.x, house.y - house.height / 2 - 24, house.loot.label);
+          this.flashUi(house.loot.type === "weapon" ? "#9cd4ff" : "#f9d27b");
+        }
       }
     });
   }
