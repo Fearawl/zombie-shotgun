@@ -44,12 +44,12 @@ const ENERGY_BOOST_MS = 5000;
 const ENERGY_SPEED_MULTIPLIER = 1.5;
 const HOUSE_BREACH_DELAY_MS = 15000;
 const HOUSE_LOOT_WEAPON_CHANCE = 0.45;
-const WORLD_WIDTH = 3200;
-const WORLD_HEIGHT = 2200;
+const WORLD_WIDTH = 4200;
+const WORLD_HEIGHT = 2800;
 const SURVIVAL_GOAL_MS = 7 * 60 * 1000;
 const EXTRACTION_HOLD_MS = 5000;
 const EXTRACTION_RADIUS = 58;
-const EXTRACTION_POINT = { x: 2940, y: 1980 };
+const EXTRACTION_POINT = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
 const RANGE_PRESETS = [
   { label: "Short", screenRatio: 0.22, color: 0xa0d8ff },
   { label: "Medium", screenRatio: 0.3, color: 0xf3d57d },
