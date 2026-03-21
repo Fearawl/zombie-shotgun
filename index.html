@@ -2,10 +2,17 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Zombie Shotgun</title>
   <link rel="icon" type="image/svg+xml" href="./assets/zombie-favicon.svg">
   <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      touch-action: none;
+    }
+
     body {
       margin: 0;
       background: #0f1115;
@@ -17,7 +24,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    canvas {
+      touch-action: none;
     }
   </style>
 </head>

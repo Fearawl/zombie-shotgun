@@ -6,6 +6,10 @@ const config = {
   height: 540,
   parent: "game",
   backgroundColor: "#182028",
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
   physics: {
     default: "arcade",
     arcade: {

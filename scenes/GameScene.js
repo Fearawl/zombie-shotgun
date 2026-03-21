@@ -93,6 +93,7 @@ export class GameScene extends Phaser.Scene {
     this.createPauseButton();
     this.createDevConsole();
     this.createPauseMenu();
+    this.createMobileControls();
     this.setupCamera();
     this.setupInput();
     this.setupCollisions();
@@ -577,6 +578,98 @@ export class GameScene extends Phaser.Scene {
     this.pauseOverlay.add([dim, panel, title, continueButton, restartButton, exitButton]);
   }
 
+  createMobileControls() {
+    this.isMobile = this.sys.game.device.input.touch;
+    this.mobile = {
+      movePointerId: null,
+      aimPointerId: null,
+      moveVector: new Phaser.Math.Vector2(),
+      firing: false,
+      aimScreenX: this.scale.width * 0.76,
+      aimScreenY: this.scale.height * 0.54,
+    };
+
+    if (!this.isMobile) {
+      return;
+    }
+
+    this.mobileUi = this.add.container(0, 0).setScrollFactor(0).setDepth(60);
+
+    const leftBaseX = 112;
+    const leftBaseY = this.scale.height - 108;
+    const rightBaseX = this.scale.width - 126;
+    const rightBaseY = this.scale.height - 114;
+
+    const moveBase = this.add.circle(leftBaseX, leftBaseY, 54, 0x0d1820, 0.34).setStrokeStyle(3, 0x5a7a90, 0.55);
+    const moveKnob = this.add.circle(leftBaseX, leftBaseY, 24, 0xc7d6e0, 0.38).setStrokeStyle(2, 0xe9f5ff, 0.6);
+    const moveZone = this.add.zone(leftBaseX, leftBaseY, 144, 144).setInteractive();
+
+    const fireBase = this.add.circle(rightBaseX, rightBaseY, 62, 0x3b1611, 0.34).setStrokeStyle(3, 0xd36d46, 0.7);
+    const fireText = this.add.text(rightBaseX, rightBaseY, "FIRE", {
+      fontFamily: "Arial Black, sans-serif",
+      fontSize: "20px",
+      color: "#ffd8bb",
+    }).setOrigin(0.5);
+    const fireZone = this.add.zone(rightBaseX, rightBaseY, 168, 168).setInteractive();
+
+    const reloadButton = this.createMobileButton(710, this.scale.height - 76, 84, 38, "R", () => this.reloadWeapon());
+    const interactButton = this.createMobileButton(804, this.scale.height - 76, 84, 38, "E", () => this.tryPickupCurrentHouseLoot());
+    const rangeButton = this.createMobileButton(898, this.scale.height - 76, 84, 38, "RNG", () => this.cycleShotRange());
+
+    const batButton = this.createMobileButton(360, this.scale.height - 54, 72, 34, "BAT", () => this.selectWeapon(WEAPONS.bat.key));
+    const shotgunButton = this.createMobileButton(440, this.scale.height - 54, 72, 34, "SG", () => this.selectWeapon(WEAPONS.shotgun.key));
+    const pistolButton = this.createMobileButton(520, this.scale.height - 54, 72, 34, "PI", () => this.selectWeapon(WEAPONS.pistol.key));
+    const grenadeButton = this.createMobileButton(600, this.scale.height - 54, 72, 34, "GR", () => this.selectWeapon(WEAPONS.grenade.key));
+
+    moveZone.on("pointerdown", (pointer) => {
+      this.mobile.movePointerId = pointer.id;
+      this.updateMobileMove(pointer, leftBaseX, leftBaseY, moveKnob);
+    });
+
+    fireZone.on("pointerdown", (pointer) => {
+      this.mobile.aimPointerId = pointer.id;
+      this.mobile.firing = true;
+      this.updateMobileAim(pointer);
+    });
+
+    this.input.on("pointermove", (pointer) => {
+      if (pointer.id === this.mobile.movePointerId) {
+        this.updateMobileMove(pointer, leftBaseX, leftBaseY, moveKnob);
+      }
+      if (pointer.id === this.mobile.aimPointerId) {
+        this.updateMobileAim(pointer);
+      }
+    });
+
+    this.input.on("pointerup", (pointer) => {
+      if (pointer.id === this.mobile.movePointerId) {
+        this.mobile.movePointerId = null;
+        this.mobile.moveVector.set(0, 0);
+        moveKnob.setPosition(leftBaseX, leftBaseY);
+      }
+      if (pointer.id === this.mobile.aimPointerId) {
+        this.mobile.aimPointerId = null;
+        this.mobile.firing = false;
+      }
+    });
+
+    this.mobileUi.add([
+      moveBase,
+      moveKnob,
+      moveZone,
+      fireBase,
+      fireText,
+      fireZone,
+      reloadButton,
+      interactButton,
+      rangeButton,
+      batButton,
+      shotgunButton,
+      pistolButton,
+      grenadeButton,
+    ]);
+  }
+
   createOverlayButton(x, y, width, height, label, onClick) {
     const container = this.add.container(x, y);
     const bg = this.add.graphics();
@@ -599,6 +692,49 @@ export class GameScene extends Phaser.Scene {
     });
     container.add([bg, text, hit]);
     return container;
+  }
+
+  createMobileButton(x, y, width, height, label, onClick) {
+    const container = this.add.container(x, y);
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0d1820, 0.86);
+    bg.lineStyle(2, 0x4f7388, 1);
+    bg.fillRoundedRect(-width / 2, -height / 2, width, height, 12);
+    bg.strokeRoundedRect(-width / 2, -height / 2, width, height, 12);
+    const text = this.add.text(0, 0, label, {
+      fontFamily: "Arial Black, sans-serif",
+      fontSize: "16px",
+      color: "#f0ead2",
+    }).setOrigin(0.5);
+    const hit = this.add.zone(0, 0, width, height).setInteractive();
+    hit.on("pointerdown", () => {
+      if (this.isPaused) {
+        return;
+      }
+      container.setScale(0.96);
+      onClick();
+    });
+    hit.on("pointerup", () => container.setScale(1));
+    hit.on("pointerout", () => container.setScale(1));
+    container.add([bg, text, hit]);
+    return container;
+  }
+
+  updateMobileMove(pointer, baseX, baseY, knob) {
+    const dx = pointer.x - baseX;
+    const dy = pointer.y - baseY;
+    const vector = new Phaser.Math.Vector2(dx, dy);
+    const maxRadius = 40;
+    if (vector.length() > maxRadius) {
+      vector.setLength(maxRadius);
+    }
+    knob.setPosition(baseX + vector.x, baseY + vector.y);
+    this.mobile.moveVector.set(vector.x / maxRadius, vector.y / maxRadius);
+  }
+
+  updateMobileAim(pointer) {
+    this.mobile.aimScreenX = pointer.x;
+    this.mobile.aimScreenY = pointer.y;
   }
 
   createSliderControl({ parent, x, y, width, label, min, max, step, initial, formatValue, onChange }) {
@@ -698,6 +834,7 @@ export class GameScene extends Phaser.Scene {
       }
     });
     this.input.keyboard.on("keydown-R", () => this.reloadWeapon());
+    this.input.keyboard.on("keydown-E", () => this.tryPickupCurrentHouseLoot());
     this.input.keyboard.on("keydown-P", () => this.toggleDevConsole());
     this.input.keyboard.on("keydown-ESC", () => this.togglePauseMenu());
     this.input.keyboard.on("keydown-ONE", () => this.selectWeapon(WEAPONS.bat.key));
@@ -772,6 +909,11 @@ export class GameScene extends Phaser.Scene {
       moveY += 1;
     }
 
+    if (this.isMobile && this.mobile) {
+      moveX += this.mobile.moveVector.x;
+      moveY += this.mobile.moveVector.y;
+    }
+
     const direction = new Phaser.Math.Vector2(moveX, moveY);
     if (direction.lengthSq() > 0) {
       direction.normalize().scale(PLAYER_SPEED);
@@ -781,13 +923,20 @@ export class GameScene extends Phaser.Scene {
   }
 
   updateAim() {
-    const worldPoint = this.input.activePointer.positionToCamera(this.cameras.main);
+    const worldPoint = this.getAimWorldPoint();
     this.player.facingAngle = Phaser.Math.Angle.Between(
       this.player.x,
       this.player.y,
       worldPoint.x,
       worldPoint.y
     );
+  }
+
+  getAimWorldPoint() {
+    if (this.isMobile && this.mobile) {
+      return this.cameras.main.getWorldPoint(this.mobile.aimScreenX, this.mobile.aimScreenY);
+    }
+    return this.input.activePointer.positionToCamera(this.cameras.main);
   }
 
   updatePlayerVisuals() {
@@ -1025,7 +1174,8 @@ export class GameScene extends Phaser.Scene {
 
   updateContinuousFire() {
     const pointer = this.input.activePointer;
-    if (!pointer || !pointer.leftButtonDown()) {
+    const mobileFiring = this.isMobile && this.mobile && this.mobile.firing;
+    if ((!pointer || !pointer.leftButtonDown()) && !mobileFiring) {
       return;
     }
 
@@ -1034,7 +1184,11 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.useCurrentWeapon(pointer);
+    const aimPoint = this.getAimWorldPoint();
+    this.useCurrentWeapon({
+      worldX: aimPoint.x,
+      worldY: aimPoint.y,
+    });
   }
 
   updateUi() {
