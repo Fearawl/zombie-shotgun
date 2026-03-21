@@ -140,6 +140,14 @@ export class GameScene extends Phaser.Scene {
     this.player.currentWeapon = WEAPONS.bat.key;
 
     this.playerShadow = this.add.ellipse(this.player.x + 6, this.player.y + 24, 44, 18, 0x000000, 0.24);
+    this.playerHealthBar = this.add.graphics().setDepth(6);
+    this.playerHealthLabel = this.add.text(this.player.x, this.player.y - 46, "", {
+      fontFamily: "Verdana, sans-serif",
+      fontSize: "12px",
+      color: "#f7f3dc",
+      stroke: "#102018",
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(7);
     this.shotRangeGraphics = this.add.graphics().setDepth(1);
     this.playerGun = this.add.graphics();
   }
@@ -566,7 +574,7 @@ export class GameScene extends Phaser.Scene {
       delay: this.settings.zombieSpawnIntervalMs,
       loop: true,
       callback: () => {
-        if (!this.isRoundFinished) {
+        if (!this.isRoundFinished && !this.isPaused) {
           this.spawnZombieNearPlayer(false);
         }
       },
@@ -576,7 +584,7 @@ export class GameScene extends Phaser.Scene {
       delay: this.settings.bossSpawnIntervalMs,
       loop: true,
       callback: () => {
-        if (!this.isRoundFinished) {
+        if (!this.isRoundFinished && !this.isPaused) {
           this.spawnZombieNearPlayer(true);
           this.bossesSpawned += 1;
         }
@@ -593,6 +601,7 @@ export class GameScene extends Phaser.Scene {
     this.updateAim();
     this.updateContinuousFire();
     this.updatePlayerVisuals();
+    this.updatePlayerHealthIndicator();
     this.updateShotRangeIndicator();
     this.updateUi();
   }
@@ -686,6 +695,26 @@ export class GameScene extends Phaser.Scene {
       barrelX + Math.cos(sideAngle) * 2,
       barrelY + Math.sin(sideAngle) * 2
     );
+  }
+
+  updatePlayerHealthIndicator() {
+    if (!this.playerHealthBar || !this.playerHealthLabel) {
+      return;
+    }
+
+    const width = 52;
+    const ratio = Phaser.Math.Clamp(this.player.healthPoints / PLAYER_MAX_HEALTH, 0, 1);
+    const x = this.player.x - width / 2;
+    const y = this.player.y - 38;
+
+    this.playerHealthBar.clear();
+    this.playerHealthBar.fillStyle(0x2b1215, 0.9);
+    this.playerHealthBar.fillRoundedRect(x, y, width, 7, 3);
+    this.playerHealthBar.fillStyle(0x7ae07e, 1);
+    this.playerHealthBar.fillRoundedRect(x, y, width * ratio, 7, 3);
+
+    this.playerHealthLabel.setPosition(this.player.x, this.player.y - 48);
+    this.playerHealthLabel.setText(`${this.player.healthPoints}/${PLAYER_MAX_HEALTH}`);
   }
 
   updateContinuousFire() {
@@ -1555,7 +1584,7 @@ export class GameScene extends Phaser.Scene {
         delay: this.settings.zombieSpawnIntervalMs,
         loop: true,
         callback: () => {
-          if (!this.isRoundFinished) {
+          if (!this.isRoundFinished && !this.isPaused) {
             this.spawnZombieNearPlayer(false);
           }
         },
@@ -1577,7 +1606,7 @@ export class GameScene extends Phaser.Scene {
         delay: this.settings.bossSpawnIntervalMs,
         loop: true,
         callback: () => {
-          if (!this.isRoundFinished) {
+          if (!this.isRoundFinished && !this.isPaused) {
             this.spawnZombieNearPlayer(true);
             this.bossesSpawned += 1;
           }
