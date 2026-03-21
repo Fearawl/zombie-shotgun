@@ -345,20 +345,15 @@ export class GameScene extends Phaser.Scene {
     roomLines.lineStyle(4, 0x7a858d, 0.9);
     roomLines.strokeRect(interiorLeft, interiorTop, interiorWidth, interiorHeight);
 
-    const partitionX = x - width * 0.1;
-    const verticalDoorGap = 62;
-    const verticalTopHeight = interiorHeight * 0.32;
-    const verticalBottomY = interiorTop + verticalTopHeight + verticalDoorGap;
-    const verticalBottomHeight = interiorHeight - verticalTopHeight - verticalDoorGap;
+    const partitionX = x - width * 0.14;
+    const verticalTopHeight = interiorHeight * 0.56;
+    const horizontalY = interiorTop + interiorHeight * 0.38;
+    const horizontalStartX = partitionX + 54;
+    const horizontalEndX = x + halfWidth - 28;
 
     roomLines.lineStyle(3, 0x8d989f, 0.75);
     roomLines.lineBetween(partitionX, interiorTop, partitionX, interiorTop + verticalTopHeight);
-    roomLines.lineBetween(partitionX, verticalBottomY, partitionX, interiorTop + interiorHeight);
-
-    const horizontalY = y - height * 0.04;
-    const horizontalGapX = partitionX - 44;
-    roomLines.lineBetween(interiorLeft, horizontalY, horizontalGapX, horizontalY);
-    roomLines.lineBetween(horizontalGapX + 72, horizontalY, x + halfWidth - 28, horizontalY);
+    roomLines.lineBetween(horizontalStartX, horizontalY, horizontalEndX, horizontalY);
 
     const roof = this.add.graphics().setDepth(5);
     roof.fillStyle(0x575c62, 1);
@@ -390,17 +385,10 @@ export class GameScene extends Phaser.Scene {
       wallThickness
     );
     this.addWall(partitionX, interiorTop + verticalTopHeight / 2, wallThickness, verticalTopHeight);
-    this.addWall(partitionX, verticalBottomY + verticalBottomHeight / 2, wallThickness, verticalBottomHeight);
     this.addWall(
-      interiorLeft + (horizontalGapX - interiorLeft) / 2,
+      (horizontalStartX + horizontalEndX) / 2,
       horizontalY,
-      horizontalGapX - interiorLeft,
-      wallThickness
-    );
-    this.addWall(
-      (horizontalGapX + 72 + (x + halfWidth - 28)) / 2,
-      horizontalY,
-      x + halfWidth - 28 - (horizontalGapX + 72),
+      horizontalEndX - horizontalStartX,
       wallThickness
     );
 
