@@ -199,15 +199,15 @@ export class GameScene extends Phaser.Scene {
 
   createHouses() {
     const houses = [
-      [530, 370, 236, 176],
-      [910, 610, 248, 184],
-      [1260, 470, 228, 172],
-      [1470, 830, 248, 184],
-      [870, 1060, 236, 176],
-      [1640, 1180, 248, 184],
-      [2260, 760, 248, 184],
-      [2550, 1160, 260, 192],
-      [2850, 1620, 248, 184],
+      [530, 370, 296, 216],
+      [910, 610, 312, 228],
+      [1260, 470, 288, 208],
+      [1470, 830, 320, 232],
+      [870, 1060, 296, 216],
+      [1640, 1180, 316, 228],
+      [2260, 760, 316, 228],
+      [2550, 1160, 332, 240],
+      [2850, 1620, 316, 228],
     ];
 
     houses.forEach(([x, y, width, height]) => this.addHouse(x, y, width, height));
@@ -224,7 +224,7 @@ export class GameScene extends Phaser.Scene {
     const halfWidth = width / 2;
     const halfHeight = height / 2;
     const wallThickness = 12;
-    const doorWidth = 76;
+    const doorWidth = 96;
     const roofHeight = 34;
     const floorTop = y - halfHeight + roofHeight - 2;
     const bottomWallWidth = (width - doorWidth) / 2;
@@ -234,18 +234,18 @@ export class GameScene extends Phaser.Scene {
     floor.fillStyle(0x82786d, 0.96);
     floor.fillRoundedRect(x - halfWidth + 6, floorTop, width - 12, height - roofHeight - 6, 8);
     floor.fillStyle(0x8f9499, 1);
-    floor.fillRoundedRect(x - halfWidth + 18, floorTop + 12, 58, 34, 5);
-    floor.fillRoundedRect(x + 8, floorTop + 12, halfWidth - 26, 34, 5);
-    floor.fillRoundedRect(x - halfWidth + 18, floorTop + 54, 76, height - roofHeight - 34, 5);
-    floor.fillRoundedRect(x + 18, floorTop + 54, halfWidth - 36, height - roofHeight - 34, 5);
+    floor.fillRoundedRect(x - halfWidth + 20, floorTop + 14, 78, 40, 5);
+    floor.fillRoundedRect(x + 10, floorTop + 14, halfWidth - 34, 40, 5);
+    floor.fillRoundedRect(x - halfWidth + 20, floorTop + 62, 102, height - roofHeight - 42, 5);
+    floor.fillRoundedRect(x + 24, floorTop + 62, halfWidth - 46, height - roofHeight - 42, 5);
     floor.lineStyle(4, 0xc4c9ce, 1);
-    floor.lineBetween(x - 8, floorTop + 4, x - 8, y + halfHeight - 18);
-    floor.lineBetween(x - halfWidth + 14, floorTop + 50, x + halfWidth - 14, floorTop + 50);
-    floor.lineBetween(x + 16, floorTop + 50, x + 16, y + halfHeight - 18);
+    floor.lineBetween(x - 12, floorTop + 6, x - 12, y + halfHeight - 22);
+    floor.lineBetween(x - halfWidth + 16, floorTop + 58, x + halfWidth - 16, floorTop + 58);
+    floor.lineBetween(x + 18, floorTop + 58, x + 18, y + halfHeight - 22);
     floor.lineStyle(5, 0x6f4b29, 1);
-    floor.lineBetween(x + 40, floorTop + 70, x + 74, floorTop + 92);
+    floor.lineBetween(x + 54, floorTop + 78, x + 98, floorTop + 108);
     floor.lineStyle(2, 0xcab08a, 1);
-    floor.lineBetween(x + 48, floorTop + 68, x + 80, floorTop + 88);
+    floor.lineBetween(x + 64, floorTop + 76, x + 104, floorTop + 102);
 
     const roof = this.add.graphics().setDepth(5);
     roof.fillStyle(0x7b4545, 1);
@@ -256,10 +256,14 @@ export class GameScene extends Phaser.Scene {
     roof.strokeRoundedRect(x - halfWidth, y - halfHeight + 20, width, height - 20, 12);
     roof.fillStyle(0xcfd7de, 0.9);
     roof.fillRoundedRect(x - 14, y + halfHeight - 34, 28, 28, 5);
-    roof.fillStyle(0xbcdcf1, 0.48);
-    roof.fillRoundedRect(x - halfWidth + 28, y - halfHeight + 40, 30, 18, 5);
-    roof.fillRoundedRect(x + halfWidth - 58, y - halfHeight + 40, 30, 18, 5);
-    roof.fillRoundedRect(x - 16, y - halfHeight + 52, 32, 20, 5);
+    roof.fillStyle(0xbcdcf1, 0.4);
+    roof.fillRoundedRect(x - halfWidth + 34, y - halfHeight + 42, 42, 24, 6);
+    roof.fillRoundedRect(x + halfWidth - 76, y - halfHeight + 42, 42, 24, 6);
+    roof.fillRoundedRect(x - 22, y - halfHeight + 58, 44, 26, 6);
+    roof.lineStyle(2, 0xe8f6ff, 0.35);
+    roof.strokeRoundedRect(x - halfWidth + 34, y - halfHeight + 42, 42, 24, 6);
+    roof.strokeRoundedRect(x + halfWidth - 76, y - halfHeight + 42, 42, 24, 6);
+    roof.strokeRoundedRect(x - 22, y - halfHeight + 58, 44, 26, 6);
 
     this.addWall(x, y - halfHeight + wallThickness / 2, width, wallThickness);
     this.addWall(x - halfWidth + wallThickness / 2, y, wallThickness, height);
@@ -276,7 +280,7 @@ export class GameScene extends Phaser.Scene {
       bottomWallWidth,
       wallThickness
     );
-    this.addWall(x - 8, floorTop + 72, wallThickness, height - roofHeight - 34);
+    this.addWall(x - 12, floorTop + 82, wallThickness, height - roofHeight - 46);
 
     this.houses.push({
       x,
