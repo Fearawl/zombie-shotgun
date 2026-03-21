@@ -47,6 +47,8 @@ const HOUSE_LOOT_WEAPON_CHANCE = 0.45;
 const WORLD_WIDTH = 3200;
 const WORLD_HEIGHT = 2200;
 const SURVIVAL_GOAL_MS = 7 * 60 * 1000;
+const EXTRACTION_HOLD_MS = 5000;
+const EXTRACTION_RADIUS = 58;
 const EXTRACTION_POINT = { x: 2940, y: 1980 };
 const RANGE_PRESETS = [
   { label: "Short", screenRatio: 0.22, color: 0xa0d8ff },
@@ -83,6 +85,8 @@ export class GameScene extends Phaser.Scene {
     this.rangePresetIndex = 1;
     this.bossesSpawned = 0;
     this.roundStartedAt = this.time.now;
+    this.extractionReady = false;
+    this.extractionHoldStartedAt = 0;
     this.settings = {
       zombieSpawnIntervalMs: DEFAULT_ZOMBIE_SPAWN_INTERVAL_MS,
       aggroRadius: DEFAULT_AGGRO_RADIUS,
@@ -1012,6 +1016,7 @@ export class GameScene extends Phaser.Scene {
     this.updatePlayerVisuals();
     this.updatePlayerHealthIndicator();
     this.updateHouses();
+    this.updateExtractionObjective();
     this.updateShotRangeIndicator();
     this.updateUi();
   }
@@ -1366,14 +1371,25 @@ export class GameScene extends Phaser.Scene {
     const shotgun = this.player.weapons.shotgun;
     const pistol = this.player.weapons.pistol;
     const grenade = this.player.weapons.grenade;
+    const extractionHoldLeft = this.extractionHoldStartedAt
+      ? Math.max(0, Math.ceil((EXTRACTION_HOLD_MS - (this.time.now - this.extractionHoldStartedAt)) / 1000))
+      : EXTRACTION_HOLD_MS / 1000;
     this.healthText.setText(`HP: ${this.player.healthPoints}/${PLAYER_MAX_HEALTH}`);
     this.weaponText.setText(`Weapon: ${WEAPONS[this.player.currentWeapon].label}`);
     this.ammoText.setText(
       `BT ready  SG ${this.formatRangedAmmo(shotgun)}  PI ${this.formatRangedAmmo(pistol)}  GR ${this.formatGrenadeAmmo(grenade)}`
     );
     this.killsText.setText(`Zombies down: ${this.kills}`);
-    this.bossText.setText(`Evac in: ${survivalSecondsLeft}s  Boss in: ${bossSecondsLeft}s`);
-    this.rangeText.setText(`Range: ${this.getCurrentRangePreset().label} (RMB)  Houses: loot weapon or ammo`);
+    this.bossText.setText(
+      this.extractionReady
+        ? `SOS: hold ${extractionHoldLeft}s  Boss in: ${bossSecondsLeft}s`
+        : `Evac in: ${survivalSecondsLeft}s  Boss in: ${bossSecondsLeft}s`
+    );
+    this.rangeText.setText(
+      this.extractionReady
+        ? `Reach SOS and stand still-ish for extraction  Range: ${this.getCurrentRangePreset().label}`
+        : `Range: ${this.getCurrentRangePreset().label} (RMB)  Houses: loot weapon or ammo`
+    );
   }
 
   useCurrentWeapon(pointer) {
@@ -1664,7 +1680,10 @@ export class GameScene extends Phaser.Scene {
       loop: false,
       callback: () => {
         if (!this.isRoundFinished) {
-          this.startExtractionSequence();
+          this.extractionReady = true;
+          this.extractionHoldStartedAt = 0;
+          this.showHouseLootText(EXTRACTION_POINT.x, EXTRACTION_POINT.y - 88, "Reach SOS and hold");
+          this.flashUi("#8fe7ff");
         }
       },
     });
@@ -1965,6 +1984,33 @@ export class GameScene extends Phaser.Scene {
     return Math.round(
       Phaser.Math.Linear(ZOMBIE_ATTACK_DAMAGE_MIN, ZOMBIE_ATTACK_DAMAGE_MAX, progress)
     );
+  }
+
+  updateExtractionObjective() {
+    if (!this.extractionReady || this.isRoundFinished) {
+      return;
+    }
+
+    const distanceToExtraction = Phaser.Math.Distance.Between(
+      this.player.x,
+      this.player.y,
+      EXTRACTION_POINT.x,
+      EXTRACTION_POINT.y
+    );
+
+    if (distanceToExtraction > EXTRACTION_RADIUS) {
+      this.extractionHoldStartedAt = 0;
+      return;
+    }
+
+    if (!this.extractionHoldStartedAt) {
+      this.extractionHoldStartedAt = this.time.now;
+      return;
+    }
+
+    if (this.time.now - this.extractionHoldStartedAt >= EXTRACTION_HOLD_MS) {
+      this.startExtractionSequence();
+    }
   }
 
   startExtractionSequence() {
