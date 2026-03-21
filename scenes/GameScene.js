@@ -335,6 +335,7 @@ export class GameScene extends Phaser.Scene {
     const gate = this.obstacles.create(x, doorY, "wall-block");
     gate.setDisplaySize(doorWidth, wallThickness + 6);
     gate.setDepth(3.2);
+    gate.setTint(0x7c4b27);
     gate.refreshBody();
     gate.baseGate = true;
     gate.gateHealth = BASE_GATE_HEALTH;
@@ -2061,6 +2062,9 @@ export class GameScene extends Phaser.Scene {
     } else if (pickup.pickupType === "pistolAmmo") {
       player.weapons.pistol.reserveAmmo += pickup.ammoAmount;
     } else if (pickup.pickupType === "grenade") {
+      if (!player.weapons.grenade.unlocked) {
+        this.unlockWeapon(WEAPONS.grenade.key);
+      }
       player.weapons.grenade.ammo += pickup.ammoAmount;
     } else if (pickup.pickupType === "medkit") {
       player.healthPoints = Math.min(PLAYER_MAX_HEALTH, player.healthPoints + pickup.ammoAmount);
@@ -2205,7 +2209,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   rollHouseLoot() {
-    const lockedWeapons = [WEAPONS.shotgun.key, WEAPONS.pistol.key, WEAPONS.grenade.key].filter(
+    const lockedWeapons = [WEAPONS.shotgun.key, WEAPONS.pistol.key].filter(
       (weaponKey) => !this.player.weapons[weaponKey].unlocked
     );
 
@@ -2250,6 +2254,9 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    if (!this.player.weapons.grenade.unlocked) {
+      this.unlockWeapon(WEAPONS.grenade.key);
+    }
     this.player.weapons.grenade.ammo += 1;
   }
 
@@ -2278,7 +2285,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    weapon.ammo += 2;
+    weapon.ammo += 0;
   }
 
   showHouseLootText(x, y, label) {
