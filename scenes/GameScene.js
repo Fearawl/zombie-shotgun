@@ -36,7 +36,6 @@ const GRENADE_RADIUS = 120;
 const MAX_ACTIVE_ZOMBIES = 48;
 const MAX_DROPPED_PICKUPS = 24;
 const DROPPED_PICKUP_LIFETIME_MS = 18000;
-const HOUSE_SEARCH_RADIUS = 86;
 const HOUSE_LOOT_WEAPON_CHANCE = 0.45;
 const RANGE_PRESETS = [
   { label: "Short", screenRatio: 0.22, color: 0xa0d8ff },
@@ -101,7 +100,7 @@ export class GameScene extends Phaser.Scene {
   createGroups() {
     this.projectiles = this.add.group();
     this.obstacles = this.physics.add.staticGroup();
-    this.houses = this.physics.add.staticGroup();
+    this.houses = [];
     this.zombies = this.physics.add.group({
       classType: Zombie,
       runChildUpdate: true,
@@ -193,15 +192,15 @@ export class GameScene extends Phaser.Scene {
 
   createHouses() {
     const houses = [
-      [530, 370],
-      [910, 610],
-      [1260, 470],
-      [1470, 830],
-      [870, 1060],
-      [1640, 1180],
+      [530, 370, 168, 128],
+      [910, 610, 176, 136],
+      [1260, 470, 168, 128],
+      [1470, 830, 176, 136],
+      [870, 1060, 168, 128],
+      [1640, 1180, 176, 136],
     ];
 
-    houses.forEach(([x, y]) => this.addHouse(x, y));
+    houses.forEach(([x, y, width, height]) => this.addHouse(x, y, width, height));
   }
 
   addTree(x, y, scale = 1) {
@@ -212,13 +211,83 @@ export class GameScene extends Phaser.Scene {
     return tree;
   }
 
-  addHouse(x, y) {
-    const house = this.houses.create(x, y, "house");
-    house.setDepth(3);
-    house.refreshBody();
-    house.setDataEnabled();
-    house.setData("searched", false);
-    return house;
+  addHouse(x, y, width, height) {
+    const halfWidth = width / 2;
+    const halfHeight = height / 2;
+    const wallThickness = 12;
+    const doorWidth = 34;
+    const roofHeight = 34;
+    const floorTop = y - halfHeight + roofHeight - 2;
+
+    const floor = this.add.graphics().setDepth(2);
+    floor.fillStyle(0x82786d, 0.96);
+    floor.fillRoundedRect(x - halfWidth + 6, floorTop, width - 12, height - roofHeight - 6, 8);
+    floor.fillStyle(0x8f9499, 1);
+    floor.fillRoundedRect(x - halfWidth + 18, floorTop + 12, 42, 28, 5);
+    floor.fillRoundedRect(x + 10, floorTop + 12, width - 40 - halfWidth, 28, 5);
+    floor.fillRoundedRect(x - halfWidth + 18, floorTop + 48, 58, height - roofHeight - 28, 5);
+    floor.fillRoundedRect(x + 16, floorTop + 48, width - halfWidth - 34, height - roofHeight - 28, 5);
+    floor.lineStyle(4, 0xc4c9ce, 1);
+    floor.lineBetween(x - 4, floorTop + 4, x - 4, y + halfHeight - 18);
+    floor.lineBetween(x - halfWidth + 14, floorTop + 44, x + halfWidth - 14, floorTop + 44);
+    floor.lineBetween(x + 12, floorTop + 44, x + 12, y + halfHeight - 18);
+    floor.lineStyle(5, 0x6f4b29, 1);
+    floor.lineBetween(x + 26, floorTop + 58, x + 52, floorTop + 74);
+    floor.lineStyle(2, 0xcab08a, 1);
+    floor.lineBetween(x + 34, floorTop + 56, x + 58, floorTop + 70);
+
+    const roof = this.add.graphics().setDepth(5);
+    roof.fillStyle(0x7b4545, 1);
+    roof.fillTriangle(x, y - halfHeight - 8, x + halfWidth + 4, y - halfHeight + 26, x - halfWidth - 4, y - halfHeight + 26);
+    roof.fillStyle(0x53585d, 1);
+    roof.fillRoundedRect(x - halfWidth, y - halfHeight + 20, width, height - 20, 12);
+    roof.lineStyle(5, 0x2a2f33, 1);
+    roof.strokeRoundedRect(x - halfWidth, y - halfHeight + 20, width, height - 20, 12);
+    roof.fillStyle(0xcfd7de, 0.9);
+    roof.fillRoundedRect(x - 14, y + halfHeight - 34, 28, 28, 5);
+    roof.fillStyle(0xbcc8d2, 0.82);
+    roof.fillRoundedRect(x - halfWidth + 22, y - halfHeight + 36, 18, 12, 4);
+    roof.fillRoundedRect(x + halfWidth - 40, y - halfHeight + 36, 18, 12, 4);
+
+    this.addWall(x, y - halfHeight + wallThickness / 2, width, wallThickness);
+    this.addWall(x - halfWidth + wallThickness / 2, y, wallThickness, height);
+    this.addWall(x + halfWidth - wallThickness / 2, y, wallThickness, height);
+    this.addWall(
+      x - (doorWidth + wallThickness) / 2,
+      y + halfHeight - wallThickness / 2,
+      width / 2 - doorWidth / 2,
+      wallThickness
+    );
+    this.addWall(
+      x + (doorWidth + wallThickness) / 2,
+      y + halfHeight - wallThickness / 2,
+      width / 2 - doorWidth / 2,
+      wallThickness
+    );
+    this.addWall(x - 4, floorTop + 66, wallThickness, height - roofHeight - 26);
+
+    this.houses.push({
+      x,
+      y,
+      width,
+      height,
+      interiorBounds: new Phaser.Geom.Rectangle(
+        x - halfWidth + 16,
+        floorTop + 8,
+        width - 32,
+        height - roofHeight - 20
+      ),
+      roof,
+      searched: false,
+    });
+  }
+
+  addWall(x, y, width, height) {
+    const wall = this.obstacles.create(x, y, "wall-block");
+    wall.setDisplaySize(width, height);
+    wall.setDepth(3);
+    wall.refreshBody();
+    return wall;
   }
 
   createZombies() {
@@ -562,11 +631,9 @@ export class GameScene extends Phaser.Scene {
 
   setupCollisions() {
     this.physics.add.overlap(this.player, this.pickups, this.handlePickup, undefined, this);
-    this.physics.add.overlap(this.player, this.houses, this.handleHouseSearch, undefined, this);
     this.physics.add.overlap(this.player, this.zombies, this.handleZombieAttack, undefined, this);
     this.physics.add.collider(this.player, this.obstacles);
     this.physics.add.collider(this.zombies, this.obstacles);
-    this.physics.add.collider(this.zombies, this.houses);
   }
 
   setupSpawnTimers() {
@@ -602,6 +669,7 @@ export class GameScene extends Phaser.Scene {
     this.updateContinuousFire();
     this.updatePlayerVisuals();
     this.updatePlayerHealthIndicator();
+    this.updateHouses();
     this.updateShotRangeIndicator();
     this.updateUi();
   }
@@ -1093,23 +1161,19 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  handleHouseSearch(player, house) {
-    if (!house.active || house.getData("searched")) {
-      return;
-    }
+  updateHouses() {
+    this.houses.forEach((house) => {
+      const isInside = Phaser.Geom.Rectangle.Contains(house.interiorBounds, this.player.x, this.player.y);
+      house.roof.setAlpha(isInside ? 0.16 : 1);
 
-    const distance = Phaser.Math.Distance.Between(player.x, player.y, house.x, house.y);
-    if (distance > HOUSE_SEARCH_RADIUS) {
-      return;
-    }
-
-    house.setData("searched", true);
-    house.setTint(0x7d8791);
-
-    const loot = this.rollHouseLoot();
-    this.applyHouseLoot(loot);
-    this.showHouseLootText(house.x, house.y - 56, loot.label);
-    this.flashUi(loot.type === "weapon" ? "#9cd4ff" : "#f9d27b");
+      if (!house.searched && isInside) {
+        house.searched = true;
+        const loot = this.rollHouseLoot();
+        this.applyHouseLoot(loot);
+        this.showHouseLootText(house.x, house.y - house.height / 2 - 24, loot.label);
+        this.flashUi(loot.type === "weapon" ? "#9cd4ff" : "#f9d27b");
+      }
+    });
   }
 
   rollHouseLoot() {

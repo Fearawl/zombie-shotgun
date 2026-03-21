@@ -28,6 +28,7 @@ export class BootScene extends Phaser.Scene {
     this.makeRoundedRectTexture("shell-icon", 12, 28, 4, 0xd6ab5d, 0x6b471f);
     this.makeRoundedRectTexture("pistol-icon", 12, 20, 3, 0xd9edf9, 0x4d6f87);
     this.makeCircleTexture("grenade-icon", 12, 0xb4c0ca, 0x42505e);
+    this.makeRoundedRectTexture("wall-block", 16, 16, 3, 0x7e858b, 0x43484d);
     this.makeHouseTexture("house", 110, 86);
     this.makeTreeTexture("tree", 70, 96);
   }
