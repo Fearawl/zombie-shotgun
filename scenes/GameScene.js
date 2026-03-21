@@ -808,7 +808,7 @@ export class GameScene extends Phaser.Scene {
   setupCamera() {
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    this.cameras.main.setZoom(1.05);
+    this.cameras.main.setZoom(this.isMobile ? 1.05 : 0.82);
   }
 
   setupInput() {
