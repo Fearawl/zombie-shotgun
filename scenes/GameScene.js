@@ -308,10 +308,15 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (loot.type === "weapon" && loot.weaponKey === WEAPONS.grenade.key) {
-      visual.fillStyle(0x5d646a, 1);
-      visual.fillCircle(x, y, 10);
-      visual.lineStyle(3, 0x23292d, 1);
-      visual.strokeCircle(x, y, 10);
+      visual.fillStyle(0x7b7b35, 1);
+      visual.lineStyle(4, 0x101316, 1);
+      visual.fillEllipse(x, y + 2, 20, 26);
+      visual.strokeEllipse(x, y + 2, 20, 26);
+      visual.lineBetween(x - 5, y - 2, x + 5, y - 2);
+      visual.lineBetween(x - 6, y + 4, x + 6, y + 4);
+      visual.lineBetween(x - 4, y + 10, x + 4, y + 10);
+      visual.strokeCircle(x + 7, y - 8, 5);
+      visual.lineBetween(x + 10, y - 5, x + 18, y + 9);
       return visual;
     }
 
@@ -834,8 +839,17 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     if (this.player.currentWeapon === WEAPONS.grenade.key) {
-      this.playerGun.fillStyle(0x46525e, 1);
-      this.playerGun.fillCircle(barrelX, barrelY, 9);
+      const grenadeX = originX + Math.cos(angle) * 16;
+      const grenadeY = originY + Math.sin(angle) * 16;
+      this.playerGun.fillStyle(0x7b7b35, 1);
+      this.playerGun.lineStyle(4, 0x101316, 1);
+      this.playerGun.fillEllipse(grenadeX, grenadeY, 18, 24);
+      this.playerGun.strokeEllipse(grenadeX, grenadeY, 18, 24);
+      this.playerGun.lineBetween(grenadeX - 4, grenadeY - 5, grenadeX + 4, grenadeY - 5);
+      this.playerGun.lineBetween(grenadeX - 5, grenadeY + 1, grenadeX + 5, grenadeY + 1);
+      this.playerGun.lineBetween(grenadeX - 3, grenadeY + 7, grenadeX + 3, grenadeY + 7);
+      this.playerGun.strokeCircle(grenadeX + 6, grenadeY - 10, 4);
+      this.playerGun.lineBetween(grenadeX + 8, grenadeY - 7, grenadeX + 16, grenadeY + 8);
       return;
     }
     if (this.player.currentWeapon === WEAPONS.shotgun.key) {

@@ -21,13 +21,13 @@ export class BootScene extends Phaser.Scene {
     this.makeCircleTexture("zombie-body", 40, 0x7fb36b, 0x2c5132);
     this.makeCircleTexture("pellet", 8, 0xffe08c, 0x7f5a23);
     this.makeCircleTexture("pistol-bullet", 6, 0xfff4bf, 0x85672f);
-    this.makeCircleTexture("grenade-orb", 18, 0x4f5962, 0x1d242b);
+    this.makeGrenadeTexture("grenade-orb", 28);
     this.makeRoundedRectTexture("ammo-box", 50, 34, 8, 0xca8b4d, 0x5f3a1d);
     this.makeRoundedRectTexture("pistol-ammo-box", 50, 34, 8, 0x6f8fd8, 0x23385d);
     this.makeRoundedRectTexture("grenade-box", 50, 34, 8, 0x7b6a8b, 0x332348);
     this.makeRoundedRectTexture("shell-icon", 12, 28, 4, 0xd6ab5d, 0x6b471f);
     this.makeRoundedRectTexture("pistol-icon", 12, 20, 3, 0xd9edf9, 0x4d6f87);
-    this.makeCircleTexture("grenade-icon", 12, 0xb4c0ca, 0x42505e);
+    this.makeGrenadeTexture("grenade-icon", 18);
     this.makeRoundedRectTexture("wall-block", 16, 16, 3, 0x7e858b, 0x43484d);
     this.makeHouseTexture("house", 110, 86);
     this.makeTreeTexture("tree", 70, 96);
@@ -52,6 +52,35 @@ export class BootScene extends Phaser.Scene {
     graphics.fillRoundedRect(2, 2, width - 4, height - 4, radius);
     graphics.strokeRoundedRect(2, 2, width - 4, height - 4, radius);
     graphics.generateTexture(key, width, height);
+    graphics.destroy();
+  }
+
+  makeGrenadeTexture(key, size) {
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    const cx = size * 0.46;
+    const cy = size * 0.58;
+    const bodyWidth = size * 0.52;
+    const bodyHeight = size * 0.62;
+
+    graphics.fillStyle(0x7b7b35, 1);
+    graphics.lineStyle(Math.max(2, Math.floor(size * 0.09)), 0x111417, 1);
+    graphics.fillEllipse(cx, cy, bodyWidth, bodyHeight);
+    graphics.strokeEllipse(cx, cy, bodyWidth, bodyHeight);
+
+    graphics.lineBetween(cx - bodyWidth * 0.26, cy - bodyHeight * 0.24, cx + bodyWidth * 0.26, cy - bodyHeight * 0.24);
+    graphics.lineBetween(cx - bodyWidth * 0.3, cy, cx + bodyWidth * 0.3, cy);
+    graphics.lineBetween(cx - bodyWidth * 0.24, cy + bodyHeight * 0.22, cx + bodyWidth * 0.24, cy + bodyHeight * 0.22);
+    graphics.lineBetween(cx - bodyWidth * 0.16, cy - bodyHeight * 0.38, cx - bodyWidth * 0.32, cy + bodyHeight * 0.32);
+    graphics.lineBetween(cx + bodyWidth * 0.02, cy - bodyHeight * 0.42, cx - bodyWidth * 0.12, cy + bodyHeight * 0.36);
+    graphics.lineBetween(cx + bodyWidth * 0.2, cy - bodyHeight * 0.34, cx + bodyWidth * 0.08, cy + bodyHeight * 0.3);
+
+    graphics.fillStyle(0xcfd7de, 1);
+    graphics.fillRoundedRect(size * 0.46, size * 0.1, size * 0.16, size * 0.14, 3);
+    graphics.lineStyle(Math.max(2, Math.floor(size * 0.07)), 0x111417, 1);
+    graphics.strokeCircle(size * 0.58, size * 0.28, size * 0.13);
+    graphics.lineBetween(size * 0.67, size * 0.34, size * 0.88, size * 0.72);
+
+    graphics.generateTexture(key, size, size);
     graphics.destroy();
   }
 
