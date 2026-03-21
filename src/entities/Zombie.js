@@ -63,21 +63,45 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     }
 
     const player = this.scene.player;
-    const playerIsSheltered = this.scene && this.scene.isPlayerInsideHouse
-      ? this.scene.isPlayerInsideHouse()
-      : false;
+    const playerHouse = this.scene && this.scene.getHouseAtPoint
+      ? this.scene.getHouseAtPoint(player.x, player.y)
+      : null;
+    const zombieHouse = this.scene && this.scene.getHouseAtPoint
+      ? this.scene.getHouseAtPoint(this.x, this.y)
+      : null;
     const playerDistance = player
       ? Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y)
       : Number.MAX_SAFE_INTEGER;
 
-    if (player && !playerIsSheltered && playerDistance <= this.aggroRadius) {
+    if (player && playerDistance <= this.aggroRadius && (!playerHouse || zombieHouse === playerHouse)) {
       const angle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
-      this.setVelocity(Math.cos(angle) * this.moveSpeed, Math.sin(angle) * this.moveSpeed);
+      const nextX = this.x + Math.cos(angle) * this.moveSpeed * Math.max(delta, 16) / 1000;
+      const nextY = this.y + Math.sin(angle) * this.moveSpeed * Math.max(delta, 16) / 1000;
+      const nextHouse = this.scene && this.scene.getHouseAtPoint
+        ? this.scene.getHouseAtPoint(nextX, nextY)
+        : null;
+
+      if (!zombieHouse && nextHouse) {
+        this.setVelocity(0, 0);
+      } else {
+        this.setVelocity(Math.cos(angle) * this.moveSpeed, Math.sin(angle) * this.moveSpeed);
+      }
     } else {
       if (time >= this.changeDirectionAt) {
         this.pickNewDirection(time);
       }
-      this.setVelocity(this.walkDirection.x * this.moveSpeed, this.walkDirection.y * this.moveSpeed);
+      const nextX = this.x + this.walkDirection.x * this.moveSpeed * Math.max(delta, 16) / 1000;
+      const nextY = this.y + this.walkDirection.y * this.moveSpeed * Math.max(delta, 16) / 1000;
+      const nextHouse = this.scene && this.scene.getHouseAtPoint
+        ? this.scene.getHouseAtPoint(nextX, nextY)
+        : null;
+
+      if (!zombieHouse && nextHouse) {
+        this.pickNewDirection(time + 120);
+        this.setVelocity(0, 0);
+      } else {
+        this.setVelocity(this.walkDirection.x * this.moveSpeed, this.walkDirection.y * this.moveSpeed);
+      }
     }
 
     if (this.shadow) {

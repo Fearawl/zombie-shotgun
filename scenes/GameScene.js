@@ -355,6 +355,10 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
+  getHouseAtPoint(x, y) {
+    return this.houses.find((house) => Phaser.Geom.Rectangle.Contains(house.interiorBounds, x, y)) ?? null;
+  }
+
   addWall(x, y, width, height) {
     const wall = this.obstacles.create(x, y, "wall-block");
     wall.setDisplaySize(width, height);
@@ -917,24 +921,24 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     if (this.player.currentWeapon === WEAPONS.pistol.key) {
-      const gripBackX = originX - Math.cos(angle) * 12;
-      const gripBackY = originY - Math.sin(angle) * 12;
-      const slideBackX = originX - Math.cos(angle) * 4;
-      const slideBackY = originY - Math.sin(angle) * 4;
-      const muzzleX = originX + Math.cos(angle) * 34;
-      const muzzleY = originY + Math.sin(angle) * 34;
+      const gripBackX = originX - Math.cos(angle) * 13;
+      const gripBackY = originY - Math.sin(angle) * 13;
+      const slideBackX = originX - Math.cos(angle) * 5;
+      const slideBackY = originY - Math.sin(angle) * 5;
+      const muzzleX = originX + Math.cos(angle) * 35;
+      const muzzleY = originY + Math.sin(angle) * 35;
       const downAngle = angle + Math.PI / 2;
       const upAngle = angle - Math.PI / 2;
 
-      this.playerGun.lineStyle(10, 0xbfc5ca, 1);
+      this.playerGun.lineStyle(11, 0x15181b, 1);
       this.playerGun.lineBetween(slideBackX, slideBackY, muzzleX, muzzleY);
-      this.playerGun.lineStyle(3, 0x737b82, 1);
+      this.playerGun.lineStyle(3, 0x2d3236, 1);
       this.playerGun.lineBetween(slideBackX, slideBackY, muzzleX, muzzleY);
 
-      for (let i = 0; i < 4; i += 1) {
-        const notchX = muzzleX - Math.cos(angle) * (8 + i * 4);
-        const notchY = muzzleY - Math.sin(angle) * (8 + i * 4);
-        this.playerGun.lineStyle(2, 0x8b9298, 1);
+      for (let i = 0; i < 5; i += 1) {
+        const notchX = muzzleX - Math.cos(angle) * (7 + i * 4);
+        const notchY = muzzleY - Math.sin(angle) * (7 + i * 4);
+        this.playerGun.lineStyle(2, 0x3e4449, 1);
         this.playerGun.lineBetween(
           notchX + Math.cos(downAngle) * 4,
           notchY + Math.sin(downAngle) * 4,
@@ -943,30 +947,30 @@ export class GameScene extends Phaser.Scene {
         );
       }
 
-      this.playerGun.lineStyle(7, 0x191d20, 1);
+      this.playerGun.lineStyle(9, 0x15191c, 1);
       this.playerGun.lineBetween(
         gripBackX + Math.cos(downAngle) * 6,
         gripBackY + Math.sin(downAngle) * 6,
-        gripBackX + Math.cos(downAngle) * 22,
-        gripBackY + Math.sin(downAngle) * 22
+        gripBackX + Math.cos(downAngle) * 24,
+        gripBackY + Math.sin(downAngle) * 24
       );
-      this.playerGun.lineStyle(3, 0x30363b, 1);
+      this.playerGun.lineStyle(3, 0x2c3135, 1);
       this.playerGun.lineBetween(
         gripBackX + Math.cos(downAngle) * 6,
         gripBackY + Math.sin(downAngle) * 6,
-        gripBackX + Math.cos(downAngle) * 22,
-        gripBackY + Math.sin(downAngle) * 22
+        gripBackX + Math.cos(downAngle) * 24,
+        gripBackY + Math.sin(downAngle) * 24
       );
 
-      this.playerGun.lineStyle(3, 0x20252a, 1);
+      this.playerGun.lineStyle(3, 0x121519, 1);
       this.playerGun.lineBetween(
         gripBackX + Math.cos(downAngle) * 8,
         gripBackY + Math.sin(downAngle) * 2,
         gripBackX + Math.cos(downAngle) * 14,
-        gripBackY + Math.sin(downAngle) * 14
+        gripBackY + Math.sin(downAngle) * 16
       );
 
-      this.playerGun.lineStyle(2, 0x0f1113, 1);
+      this.playerGun.lineStyle(2, 0x0d1012, 1);
       this.playerGun.lineBetween(
         originX - Math.cos(angle) * 2 + Math.cos(downAngle) * 8,
         originY - Math.sin(angle) * 2 + Math.sin(downAngle) * 8,
@@ -974,12 +978,16 @@ export class GameScene extends Phaser.Scene {
         originY + Math.sin(downAngle) * 14
       );
 
-      this.playerGun.fillStyle(0xd3d7db, 1);
-      this.playerGun.fillCircle(
-        slideBackX + Math.cos(upAngle) * 2,
-        slideBackY + Math.sin(upAngle) * 2,
-        3
+      this.playerGun.lineStyle(4, 0x1d2125, 1);
+      this.playerGun.lineBetween(
+        gripBackX + Math.cos(upAngle) * 4,
+        gripBackY + Math.sin(upAngle) * 4,
+        gripBackX + Math.cos(upAngle) * 11,
+        gripBackY + Math.sin(upAngle) * 11
       );
+
+      this.playerGun.fillStyle(0x0e1114, 1);
+      this.playerGun.fillCircle(slideBackX + Math.cos(upAngle) * 1.5, slideBackY + Math.sin(upAngle) * 1.5, 2.5);
       this.playerGun.fillStyle(0x101316, 1);
       this.playerGun.fillCircle(muzzleX, muzzleY, 2);
       return;
@@ -1521,7 +1529,9 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.isPlayerInsideHouse()) {
+    const playerHouse = this.getHouseAtPoint(player.x, player.y);
+    const zombieHouse = this.getHouseAtPoint(zombie.x, zombie.y);
+    if (playerHouse && zombieHouse !== playerHouse) {
       return;
     }
 
