@@ -13,7 +13,7 @@ const SHOTGUN_DAMAGE = 5;
 const PISTOL_CLIP_SIZE = 15;
 const PISTOL_STARTER_RESERVE = 15;
 const PISTOL_DAMAGE = 8;
-const SHOT_COOLDOWN_MS = 280;
+const SHOT_COOLDOWN_MS = 700;
 const PISTOL_COOLDOWN_MS = 500;
 const GRENADE_COOLDOWN_MS = 450;
 const SHOTGUN_PELLET_COUNT = 8;
@@ -1453,7 +1453,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     const neededAmmo = clipSize - weapon.clipAmmo;
-    const loadedAmmo = Math.min(neededAmmo, weapon.reserveAmmo);
+    const loadedAmmo = Math.min(1, neededAmmo, weapon.reserveAmmo);
     weapon.clipAmmo += loadedAmmo;
     weapon.reserveAmmo -= loadedAmmo;
     this.flashUi("#a7efc5");
