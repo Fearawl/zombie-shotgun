@@ -199,15 +199,15 @@ export class GameScene extends Phaser.Scene {
 
   createHouses() {
     const houses = [
-      [530, 370, 296, 216],
-      [910, 610, 312, 228],
-      [1260, 470, 288, 208],
-      [1470, 830, 320, 232],
-      [870, 1060, 296, 216],
-      [1640, 1180, 316, 228],
-      [2260, 760, 316, 228],
-      [2550, 1160, 332, 240],
-      [2850, 1620, 316, 228],
+      [530, 370, 360, 264],
+      [910, 610, 388, 280],
+      [1260, 470, 348, 252],
+      [1470, 830, 404, 292],
+      [870, 1060, 360, 264],
+      [1640, 1180, 396, 284],
+      [2260, 760, 396, 284],
+      [2550, 1160, 420, 304],
+      [2850, 1620, 396, 284],
     ];
 
     houses.forEach(([x, y, width, height]) => this.addHouse(x, y, width, height));
@@ -224,46 +224,37 @@ export class GameScene extends Phaser.Scene {
     const halfWidth = width / 2;
     const halfHeight = height / 2;
     const wallThickness = 12;
-    const doorWidth = 96;
-    const roofHeight = 34;
-    const floorTop = y - halfHeight + roofHeight - 2;
+    const doorWidth = 108;
+    const roofInset = 12;
+    const floorTop = y - halfHeight + roofInset;
     const bottomWallWidth = (width - doorWidth) / 2;
     const bottomWallOffset = doorWidth / 2 + bottomWallWidth / 2;
 
     const floor = this.add.graphics().setDepth(2);
     floor.fillStyle(0x82786d, 0.96);
-    floor.fillRoundedRect(x - halfWidth + 6, floorTop, width - 12, height - roofHeight - 6, 8);
-    floor.fillStyle(0x8f9499, 1);
-    floor.fillRoundedRect(x - halfWidth + 20, floorTop + 14, 78, 40, 5);
-    floor.fillRoundedRect(x + 10, floorTop + 14, halfWidth - 34, 40, 5);
-    floor.fillRoundedRect(x - halfWidth + 20, floorTop + 62, 102, height - roofHeight - 42, 5);
-    floor.fillRoundedRect(x + 24, floorTop + 62, halfWidth - 46, height - roofHeight - 42, 5);
-    floor.lineStyle(4, 0xc4c9ce, 1);
-    floor.lineBetween(x - 12, floorTop + 6, x - 12, y + halfHeight - 22);
-    floor.lineBetween(x - halfWidth + 16, floorTop + 58, x + halfWidth - 16, floorTop + 58);
-    floor.lineBetween(x + 18, floorTop + 58, x + 18, y + halfHeight - 22);
+    floor.fillRoundedRect(x - halfWidth + 6, floorTop, width - 12, height - roofInset - 6, 8);
+    floor.lineStyle(3, 0x90857a, 0.85);
+    for (let lineY = floorTop + 24; lineY < y + halfHeight - 18; lineY += 26) {
+      floor.lineBetween(x - halfWidth + 18, lineY, x + halfWidth - 18, lineY);
+    }
     floor.lineStyle(5, 0x6f4b29, 1);
-    floor.lineBetween(x + 54, floorTop + 78, x + 98, floorTop + 108);
+    floor.lineBetween(x + 40, floorTop + 88, x + 96, floorTop + 126);
     floor.lineStyle(2, 0xcab08a, 1);
-    floor.lineBetween(x + 64, floorTop + 76, x + 104, floorTop + 102);
+    floor.lineBetween(x + 52, floorTop + 84, x + 104, floorTop + 118);
 
     const roof = this.add.graphics().setDepth(5);
-    roof.fillStyle(0x7b4545, 1);
-    roof.fillTriangle(x, y - halfHeight - 8, x + halfWidth + 4, y - halfHeight + 26, x - halfWidth - 4, y - halfHeight + 26);
-    roof.fillStyle(0x53585d, 1);
-    roof.fillRoundedRect(x - halfWidth, y - halfHeight + 20, width, height - 20, 12);
+    roof.fillStyle(0x575c62, 1);
+    roof.fillRect(x - halfWidth, y - halfHeight, width, height);
     roof.lineStyle(5, 0x2a2f33, 1);
-    roof.strokeRoundedRect(x - halfWidth, y - halfHeight + 20, width, height - 20, 12);
-    roof.fillStyle(0xcfd7de, 0.9);
-    roof.fillRoundedRect(x - 14, y + halfHeight - 34, 28, 28, 5);
-    roof.fillStyle(0xbcdcf1, 0.4);
-    roof.fillRoundedRect(x - halfWidth + 34, y - halfHeight + 42, 42, 24, 6);
-    roof.fillRoundedRect(x + halfWidth - 76, y - halfHeight + 42, 42, 24, 6);
-    roof.fillRoundedRect(x - 22, y - halfHeight + 58, 44, 26, 6);
-    roof.lineStyle(2, 0xe8f6ff, 0.35);
-    roof.strokeRoundedRect(x - halfWidth + 34, y - halfHeight + 42, 42, 24, 6);
-    roof.strokeRoundedRect(x + halfWidth - 76, y - halfHeight + 42, 42, 24, 6);
-    roof.strokeRoundedRect(x - 22, y - halfHeight + 58, 44, 26, 6);
+    roof.strokeRect(x - halfWidth, y - halfHeight, width, height);
+    roof.fillStyle(0xbcdcf1, 0.34);
+    roof.fillRoundedRect(x - halfWidth + 32, y - halfHeight + 34, 54, 30, 6);
+    roof.fillRoundedRect(x + halfWidth - 86, y - halfHeight + 34, 54, 30, 6);
+    roof.fillRoundedRect(x - 28, y - halfHeight + 58, 56, 34, 6);
+    roof.lineStyle(2, 0xe8f6ff, 0.28);
+    roof.strokeRoundedRect(x - halfWidth + 32, y - halfHeight + 34, 54, 30, 6);
+    roof.strokeRoundedRect(x + halfWidth - 86, y - halfHeight + 34, 54, 30, 6);
+    roof.strokeRoundedRect(x - 28, y - halfHeight + 58, 56, 34, 6);
 
     this.addWall(x, y - halfHeight + wallThickness / 2, width, wallThickness);
     this.addWall(x - halfWidth + wallThickness / 2, y, wallThickness, height);
@@ -280,7 +271,6 @@ export class GameScene extends Phaser.Scene {
       bottomWallWidth,
       wallThickness
     );
-    this.addWall(x - 12, floorTop + 82, wallThickness, height - roofHeight - 46);
 
     this.houses.push({
       x,
@@ -291,7 +281,7 @@ export class GameScene extends Phaser.Scene {
         x - halfWidth + 16,
         floorTop + 8,
         width - 32,
-        height - roofHeight - 20
+        height - roofInset - 24
       ),
       roof,
       searched: false,
