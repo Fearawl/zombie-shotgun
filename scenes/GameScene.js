@@ -756,19 +756,35 @@ export class GameScene extends Phaser.Scene {
 
     this.playerGun.clear();
     if (this.player.currentWeapon === WEAPONS.bat.key) {
-      const batTipX = originX + Math.cos(angle) * 38;
-      const batTipY = originY + Math.sin(angle) * 38;
-      const batEndX = originX - Math.cos(angle) * 10;
-      const batEndY = originY - Math.sin(angle) * 10;
-      this.playerGun.lineStyle(8, 0x8d949c, 1);
-      this.playerGun.lineBetween(batEndX, batEndY, batTipX, batTipY);
-      this.playerGun.lineStyle(4, 0xc9d0d8, 1);
+      const batTipX = originX + Math.cos(angle) * 42;
+      const batTipY = originY + Math.sin(angle) * 42;
+      const batEndX = originX - Math.cos(angle) * 18;
+      const batEndY = originY - Math.sin(angle) * 18;
+      const handleTopX = originX - Math.cos(angle) * 4;
+      const handleTopY = originY - Math.sin(angle) * 4;
+
+      this.playerGun.lineStyle(10, 0xa5abb0, 1);
+      this.playerGun.lineBetween(handleTopX, handleTopY, batTipX, batTipY);
+      this.playerGun.lineStyle(3, 0xd6dbe0, 1);
+      this.playerGun.lineBetween(handleTopX, handleTopY, batTipX, batTipY);
+
+      this.playerGun.lineStyle(10, 0x1b2230, 1);
+      this.playerGun.lineBetween(batEndX, batEndY, handleTopX, handleTopY);
+      this.playerGun.lineStyle(3, 0x394356, 1);
+      this.playerGun.lineBetween(batEndX, batEndY, handleTopX, handleTopY);
+
+      this.playerGun.lineStyle(15, 0x4f0608, 0.95);
       this.playerGun.lineBetween(
-        batTipX + Math.cos(sideAngle) * 2,
-        batTipY + Math.sin(sideAngle) * 2,
-        batEndX + Math.cos(sideAngle) * 2,
-        batEndY + Math.sin(sideAngle) * 2
+        originX + Math.cos(angle) * 24,
+        originY + Math.sin(angle) * 24,
+        batTipX,
+        batTipY
       );
+
+      this.playerGun.fillStyle(0x3b4146, 1);
+      this.playerGun.fillCircle(batTipX, batTipY, 6);
+      this.playerGun.fillStyle(0x7a8087, 1);
+      this.playerGun.fillCircle(batEndX, batEndY, 4);
       return;
     }
     if (this.player.currentWeapon === WEAPONS.grenade.key) {
