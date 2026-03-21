@@ -570,14 +570,21 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (loot.type === "weapon" && loot.weaponKey === WEAPONS.akm.key) {
-      visual.lineStyle(6, 0x23282b, 1);
-      visual.lineBetween(x - 24, y - 4, x + 22, y - 4);
-      visual.lineStyle(4, 0x3e474d, 1);
-      visual.lineBetween(x - 22, y - 6, x + 20, y - 6);
-      visual.lineStyle(5, 0x6d4c2f, 1);
-      visual.lineBetween(x - 12, y + 1, x - 2, y + 16);
-      visual.lineStyle(4, 0x1e2327, 1);
-      visual.lineBetween(x + 2, y + 2, x + 6, y + 14);
+      visual.lineStyle(7, 0x171a1d, 1);
+      visual.lineBetween(x - 26, y - 4, x + 24, y - 4);
+      visual.lineStyle(4, 0x3f464c, 1);
+      visual.lineBetween(x - 20, y - 8, x + 15, y - 8);
+      visual.lineStyle(7, 0x8a5224, 1);
+      visual.lineBetween(x - 36, y - 2, x - 18, y - 4);
+      visual.lineStyle(4, 0xb56f38, 1);
+      visual.lineBetween(x - 35, y, x - 18, y - 2);
+      visual.lineStyle(7, 0x975a28, 1);
+      visual.lineBetween(x + 4, y - 1, x + 18, y - 2);
+      visual.lineStyle(3, 0x171b1f, 1);
+      visual.lineBetween(x - 6, y + 2, x - 1, y + 15);
+      visual.lineBetween(x + 1, y + 2, x + 9, y + 16);
+      visual.lineStyle(2, 0x1f2529, 1);
+      visual.lineBetween(x + 18, y - 4, x + 27, y - 4);
       return visual;
     }
 
@@ -1127,6 +1134,13 @@ export class GameScene extends Phaser.Scene {
         this.cycleShotRange();
       }
     });
+    this.input.on("wheel", (_pointer, _gameObjects, _deltaX, deltaY) => {
+      if (this.isPaused || this.isRoundFinished || !deltaY) {
+        return;
+      }
+
+      this.cycleWeapon(deltaY > 0 ? 1 : -1);
+    });
     this.input.keyboard.on("keydown-R", () => this.reloadWeapon());
     this.input.keyboard.on("keydown-E", () => this.tryPickupCurrentHouseLoot());
     this.input.keyboard.on("keydown-P", () => this.toggleDevConsole());
@@ -1308,43 +1322,56 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     if (this.player.currentWeapon === WEAPONS.akm.key) {
-      const stockBackX = originX - Math.cos(angle) * 24;
-      const stockBackY = originY - Math.sin(angle) * 24;
-      const receiverBackX = originX - Math.cos(angle) * 2;
-      const receiverBackY = originY - Math.sin(angle) * 2;
-      const muzzleX = originX + Math.cos(angle) * 46;
-      const muzzleY = originY + Math.sin(angle) * 46;
+      const stockBackX = originX - Math.cos(angle) * 34;
+      const stockBackY = originY - Math.sin(angle) * 34;
+      const receiverBackX = originX - Math.cos(angle) * 6;
+      const receiverBackY = originY - Math.sin(angle) * 6;
+      const muzzleX = originX + Math.cos(angle) * 50;
+      const muzzleY = originY + Math.sin(angle) * 50;
+      const handguardStartX = originX + Math.cos(angle) * 10;
+      const handguardStartY = originY + Math.sin(angle) * 10;
+      const handguardEndX = originX + Math.cos(angle) * 28;
+      const handguardEndY = originY + Math.sin(angle) * 28;
       const downAngle = angle + Math.PI / 2;
       const upAngle = angle - Math.PI / 2;
 
-      this.playerGun.lineStyle(9, 0x202529, 1);
+      this.playerGun.lineStyle(9, 0x181b1e, 1);
       this.playerGun.lineBetween(receiverBackX, receiverBackY, muzzleX, muzzleY);
-      this.playerGun.lineStyle(3, 0x3d464c, 1);
-      this.playerGun.lineBetween(receiverBackX, receiverBackY, muzzleX, muzzleY);
-      this.playerGun.lineStyle(8, 0x2b2017, 1);
+      this.playerGun.lineStyle(3, 0x454d54, 1);
+      this.playerGun.lineBetween(receiverBackX - Math.cos(angle) * 2, receiverBackY - Math.sin(angle) * 2, handguardStartX, handguardStartY);
+      this.playerGun.lineStyle(9, 0x8a5224, 1);
       this.playerGun.lineBetween(stockBackX, stockBackY, receiverBackX, receiverBackY);
-      this.playerGun.lineStyle(3, 0x6f543c, 1);
+      this.playerGun.lineStyle(4, 0xb57039, 1);
       this.playerGun.lineBetween(stockBackX, stockBackY, receiverBackX, receiverBackY);
-      this.playerGun.lineStyle(4, 0x22272b, 1);
+      this.playerGun.lineStyle(8, 0x995d2b, 1);
+      this.playerGun.lineBetween(handguardStartX, handguardStartY, handguardEndX, handguardEndY);
+      this.playerGun.lineStyle(4, 0x1b2024, 1);
       this.playerGun.lineBetween(
-        originX + Math.cos(angle) * 4 + Math.cos(downAngle) * 3,
-        originY + Math.sin(angle) * 4 + Math.sin(downAngle) * 3,
-        originX + Math.cos(angle) * 9 + Math.cos(downAngle) * 12,
-        originY + Math.sin(angle) * 9 + Math.sin(downAngle) * 12
+        originX + Math.cos(angle) * 2 + Math.cos(downAngle) * 2,
+        originY + Math.sin(angle) * 2 + Math.sin(downAngle) * 2,
+        originX + Math.cos(angle) * 8 + Math.cos(downAngle) * 14,
+        originY + Math.sin(angle) * 8 + Math.sin(downAngle) * 14
+      );
+      this.playerGun.lineStyle(3, 0x171b1f, 1);
+      this.playerGun.lineBetween(
+        receiverBackX + Math.cos(angle) * 18 + Math.cos(upAngle) * 5,
+        receiverBackY + Math.sin(angle) * 18 + Math.sin(upAngle) * 5,
+        receiverBackX + Math.cos(angle) * 24 + Math.cos(upAngle) * 9,
+        receiverBackY + Math.sin(angle) * 24 + Math.sin(upAngle) * 9
       );
       this.playerGun.lineStyle(5, 0x1d2327, 1);
       this.playerGun.lineBetween(
-        muzzleX - Math.cos(angle) * 20 + Math.cos(downAngle) * 4,
-        muzzleY - Math.sin(angle) * 20 + Math.sin(downAngle) * 4,
-        muzzleX - Math.cos(angle) * 6 + Math.cos(downAngle) * 4,
-        muzzleY - Math.sin(angle) * 6 + Math.sin(downAngle) * 4
+        muzzleX - Math.cos(angle) * 16 + Math.cos(downAngle) * 4,
+        muzzleY - Math.sin(angle) * 16 + Math.sin(downAngle) * 4,
+        muzzleX - Math.cos(angle) * 4 + Math.cos(downAngle) * 4,
+        muzzleY - Math.sin(angle) * 4 + Math.sin(downAngle) * 4
       );
-      this.playerGun.lineStyle(2, 0x515a61, 1);
+      this.playerGun.lineStyle(2, 0x677077, 1);
       this.playerGun.lineBetween(
-        receiverBackX + Math.cos(upAngle) * 4,
-        receiverBackY + Math.sin(upAngle) * 4,
-        receiverBackX + Math.cos(upAngle) * 8,
-        receiverBackY + Math.sin(upAngle) * 8
+        receiverBackX + Math.cos(upAngle) * 5,
+        receiverBackY + Math.sin(upAngle) * 5,
+        receiverBackX + Math.cos(upAngle) * 9,
+        receiverBackY + Math.sin(upAngle) * 9
       );
       this.playerGun.fillStyle(0x111417, 1);
       this.playerGun.fillCircle(muzzleX, muzzleY, 2.5);
@@ -1887,6 +1914,23 @@ export class GameScene extends Phaser.Scene {
 
     this.player.currentWeapon = weaponKey;
     this.flashUi("#9cd4ff");
+  }
+
+  getAvailableWeapons() {
+    return [WEAPONS.bat.key, WEAPONS.shotgun.key, WEAPONS.pistol.key, WEAPONS.akm.key, WEAPONS.grenade.key].filter(
+      (weaponKey) => weaponKey === WEAPONS.bat.key || this.player.weapons[weaponKey].unlocked
+    );
+  }
+
+  cycleWeapon(direction) {
+    const availableWeapons = this.getAvailableWeapons();
+    if (availableWeapons.length <= 1) {
+      return;
+    }
+
+    const currentIndex = Math.max(0, availableWeapons.indexOf(this.player.currentWeapon));
+    const nextIndex = (currentIndex + direction + availableWeapons.length) % availableWeapons.length;
+    this.selectWeapon(availableWeapons[nextIndex]);
   }
 
   showBatSwing(angle) {
