@@ -3,13 +3,19 @@ import { Zombie } from "../src/entities/Zombie.js";
 
 const PLAYER_SPEED = 250;
 const PLAYER_MAX_HEALTH = 10;
+const BAT_DAMAGE = 4;
+const BAT_COOLDOWN_MS = 420;
+const BAT_RADIUS = 92;
+const BAT_ARC = 1.55;
 const SHOTGUN_CLIP_SIZE = 6;
-const STARTING_SHOTGUN_AMMO = 10;
+const SHOTGUN_STARTER_RESERVE = 6;
 const SHOTGUN_DAMAGE = 5;
 const PISTOL_CLIP_SIZE = 15;
-const STARTING_PISTOL_AMMO = 60;
+const PISTOL_STARTER_RESERVE = 15;
 const PISTOL_DAMAGE = 8;
 const SHOT_COOLDOWN_MS = 280;
+const PISTOL_COOLDOWN_MS = 150;
+const GRENADE_COOLDOWN_MS = 450;
 const SHOTGUN_PELLET_COUNT = 8;
 const SHOT_SPREAD = 0.34;
 const ZOMBIE_COUNT = 18;
@@ -30,6 +36,8 @@ const GRENADE_RADIUS = 120;
 const MAX_ACTIVE_ZOMBIES = 48;
 const MAX_DROPPED_PICKUPS = 24;
 const DROPPED_PICKUP_LIFETIME_MS = 18000;
+const HOUSE_SEARCH_RADIUS = 86;
+const HOUSE_LOOT_WEAPON_CHANCE = 0.45;
 const RANGE_PRESETS = [
   { label: "Short", screenRatio: 0.22, color: 0xa0d8ff },
   { label: "Medium", screenRatio: 0.3, color: 0xf3d57d },
@@ -37,6 +45,7 @@ const RANGE_PRESETS = [
 ];
 
 const WEAPONS = {
+  bat: { key: "bat", label: "Bat" },
   shotgun: { key: "shotgun", label: "Shotgun", clipSize: SHOTGUN_CLIP_SIZE },
   pistol: { key: "pistol", label: "Pistol", clipSize: PISTOL_CLIP_SIZE },
   grenade: { key: "grenade", label: "Grenade" },
@@ -76,8 +85,8 @@ export class GameScene extends Phaser.Scene {
 
     this.drawArena();
     this.createGroups();
+    this.createWorldProps();
     this.createPlayer();
-    this.createPickups();
     this.createZombies();
     this.createUi();
     this.createPauseButton();
@@ -91,6 +100,8 @@ export class GameScene extends Phaser.Scene {
 
   createGroups() {
     this.projectiles = this.add.group();
+    this.obstacles = this.physics.add.staticGroup();
+    this.houses = this.physics.add.staticGroup();
     this.zombies = this.physics.add.group({
       classType: Zombie,
       runChildUpdate: true,
@@ -108,36 +119,98 @@ export class GameScene extends Phaser.Scene {
     this.player.facingAngle = 0;
     this.player.healthPoints = PLAYER_MAX_HEALTH;
     this.player.weapons = {
+      bat: {
+        unlocked: true,
+      },
       shotgun: {
-        clipAmmo: SHOTGUN_CLIP_SIZE,
-        reserveAmmo: STARTING_SHOTGUN_AMMO - SHOTGUN_CLIP_SIZE,
+        unlocked: false,
+        clipAmmo: 0,
+        reserveAmmo: 0,
       },
       pistol: {
-        clipAmmo: PISTOL_CLIP_SIZE,
-        reserveAmmo: STARTING_PISTOL_AMMO - PISTOL_CLIP_SIZE,
+        unlocked: false,
+        clipAmmo: 0,
+        reserveAmmo: 0,
       },
       grenade: {
-        ammo: 2,
+        unlocked: false,
+        ammo: 0,
       },
     };
-    this.player.currentWeapon = WEAPONS.shotgun.key;
+    this.player.currentWeapon = WEAPONS.bat.key;
 
     this.playerShadow = this.add.ellipse(this.player.x + 6, this.player.y + 24, 44, 18, 0x000000, 0.24);
     this.shotRangeGraphics = this.add.graphics().setDepth(1);
     this.playerGun = this.add.graphics();
   }
 
-  createPickups() {
-    const positions = [
-      [520, 340],
-      [600, 420],
-      [470, 500],
+  createWorldProps() {
+    this.createBoundaryTrees();
+    this.createScatteredTrees();
+    this.createHouses();
+  }
+
+  createBoundaryTrees() {
+    const bounds = this.physics.world.bounds;
+    const spacing = 92;
+
+    for (let x = 40; x <= bounds.width - 40; x += spacing) {
+      this.addTree(x, 34, 1.08);
+      this.addTree(x, bounds.height - 34, 1.08);
+    }
+
+    for (let y = 110; y <= bounds.height - 110; y += spacing) {
+      this.addTree(34, y, 1.08);
+      this.addTree(bounds.width - 34, y, 1.08);
+    }
+  }
+
+  createScatteredTrees() {
+    const trees = [
+      [710, 250, 0.92],
+      [920, 270, 1.06],
+      [1180, 420, 0.88],
+      [1460, 310, 1.02],
+      [1710, 520, 0.96],
+      [640, 760, 1.1],
+      [1020, 890, 0.94],
+      [1380, 980, 1.12],
+      [1750, 980, 0.9],
+      [860, 1280, 1],
+      [1540, 1240, 1.06],
     ];
 
-    positions.forEach(([x, y]) => {
-      const pickup = new AmmoPickup(this, x, y, this.buildPickupOptions("shotgunAmmo"));
-      this.pickups.add(pickup);
-    });
+    trees.forEach(([x, y, scale]) => this.addTree(x, y, scale));
+  }
+
+  createHouses() {
+    const houses = [
+      [530, 370],
+      [910, 610],
+      [1260, 470],
+      [1470, 830],
+      [870, 1060],
+      [1640, 1180],
+    ];
+
+    houses.forEach(([x, y]) => this.addHouse(x, y));
+  }
+
+  addTree(x, y, scale = 1) {
+    const tree = this.obstacles.create(x, y, "tree");
+    tree.setScale(scale);
+    tree.setDepth(3);
+    tree.refreshBody();
+    return tree;
+  }
+
+  addHouse(x, y) {
+    const house = this.houses.create(x, y, "house");
+    house.setDepth(3);
+    house.refreshBody();
+    house.setDataEnabled();
+    house.setData("searched", false);
+    return house;
   }
 
   createZombies() {
@@ -207,7 +280,7 @@ export class GameScene extends Phaser.Scene {
       fontSize: "18px",
       color: "#f2cfa4",
     });
-    this.reloadText = this.add.text(20, 194, "1 Shotgun  2 Pistol  3 Grenade  R Reload", {
+    this.reloadText = this.add.text(20, 194, "1 Bat  2 Shotgun  3 Pistol  4 Grenade  R Reload", {
       fontFamily: "Verdana, sans-serif",
       fontSize: "14px",
       color: "#9fc2d7",
@@ -456,6 +529,7 @@ export class GameScene extends Phaser.Scene {
 
   setupInput() {
     this.keys = this.input.keyboard.addKeys("W,A,S,D,R,P,ESC,ONE,TWO,THREE");
+    this.keys.FOUR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR);
     if (this.input.mouse) {
       this.input.mouse.disableContextMenu();
     }
@@ -472,14 +546,19 @@ export class GameScene extends Phaser.Scene {
     this.input.keyboard.on("keydown-R", () => this.reloadWeapon());
     this.input.keyboard.on("keydown-P", () => this.toggleDevConsole());
     this.input.keyboard.on("keydown-ESC", () => this.togglePauseMenu());
-    this.input.keyboard.on("keydown-ONE", () => this.selectWeapon(WEAPONS.shotgun.key));
-    this.input.keyboard.on("keydown-TWO", () => this.selectWeapon(WEAPONS.pistol.key));
-    this.input.keyboard.on("keydown-THREE", () => this.selectWeapon(WEAPONS.grenade.key));
+    this.input.keyboard.on("keydown-ONE", () => this.selectWeapon(WEAPONS.bat.key));
+    this.input.keyboard.on("keydown-TWO", () => this.selectWeapon(WEAPONS.shotgun.key));
+    this.input.keyboard.on("keydown-THREE", () => this.selectWeapon(WEAPONS.pistol.key));
+    this.input.keyboard.on("keydown-FOUR", () => this.selectWeapon(WEAPONS.grenade.key));
   }
 
   setupCollisions() {
     this.physics.add.overlap(this.player, this.pickups, this.handlePickup, undefined, this);
+    this.physics.add.overlap(this.player, this.houses, this.handleHouseSearch, undefined, this);
     this.physics.add.overlap(this.player, this.zombies, this.handleZombieAttack, undefined, this);
+    this.physics.add.collider(this.player, this.obstacles);
+    this.physics.add.collider(this.zombies, this.obstacles);
+    this.physics.add.collider(this.zombies, this.houses);
   }
 
   setupSpawnTimers() {
@@ -573,6 +652,22 @@ export class GameScene extends Phaser.Scene {
     const sideAngle = angle + Math.PI / 2;
 
     this.playerGun.clear();
+    if (this.player.currentWeapon === WEAPONS.bat.key) {
+      const batTipX = originX + Math.cos(angle) * 26;
+      const batTipY = originY + Math.sin(angle) * 26;
+      const batEndX = originX - Math.cos(angle) * 8;
+      const batEndY = originY - Math.sin(angle) * 8;
+      this.playerGun.lineStyle(8, 0x6e4727, 1);
+      this.playerGun.lineBetween(batEndX, batEndY, batTipX, batTipY);
+      this.playerGun.lineStyle(4, 0xc69a5d, 1);
+      this.playerGun.lineBetween(
+        batTipX + Math.cos(sideAngle) * 2,
+        batTipY + Math.sin(sideAngle) * 2,
+        batEndX + Math.cos(sideAngle) * 2,
+        batEndY + Math.sin(sideAngle) * 2
+      );
+      return;
+    }
     if (this.player.currentWeapon === WEAPONS.grenade.key) {
       this.playerGun.fillStyle(0x46525e, 1);
       this.playerGun.fillCircle(barrelX, barrelY, 9);
@@ -612,13 +707,20 @@ export class GameScene extends Phaser.Scene {
     const grenade = this.player.weapons.grenade;
     this.healthText.setText(`HP: ${this.player.healthPoints}/${PLAYER_MAX_HEALTH}`);
     this.weaponText.setText(`Weapon: ${WEAPONS[this.player.currentWeapon].label}`);
-    this.ammoText.setText(`SG ${shotgun.clipAmmo}/${shotgun.reserveAmmo}  PI ${pistol.clipAmmo}/${pistol.reserveAmmo}  GR ${grenade.ammo}`);
+    this.ammoText.setText(
+      `BT ready  SG ${this.formatRangedAmmo(shotgun)}  PI ${this.formatRangedAmmo(pistol)}  GR ${this.formatGrenadeAmmo(grenade)}`
+    );
     this.killsText.setText(`Zombies down: ${this.kills}`);
     this.bossText.setText(`Boss in: ${bossSecondsLeft}s`);
-    this.rangeText.setText(`Range: ${this.getCurrentRangePreset().label} (RMB)`);
+    this.rangeText.setText(`Range: ${this.getCurrentRangePreset().label} (RMB)  Houses: loot weapon or ammo`);
   }
 
   useCurrentWeapon(pointer) {
+    if (this.player.currentWeapon === WEAPONS.bat.key) {
+      this.swingBat(pointer);
+      return;
+    }
+
     if (this.player.currentWeapon === WEAPONS.shotgun.key) {
       this.fireShotgun(pointer);
       return;
@@ -633,15 +735,19 @@ export class GameScene extends Phaser.Scene {
   }
 
   canCurrentWeaponFire() {
+    if (this.player.currentWeapon === WEAPONS.bat.key) {
+      return true;
+    }
+
     if (this.player.currentWeapon === WEAPONS.shotgun.key) {
-      return this.player.weapons.shotgun.clipAmmo > 0;
+      return this.player.weapons.shotgun.unlocked && this.player.weapons.shotgun.clipAmmo > 0;
     }
 
     if (this.player.currentWeapon === WEAPONS.pistol.key) {
-      return this.player.weapons.pistol.clipAmmo > 0;
+      return this.player.weapons.pistol.unlocked && this.player.weapons.pistol.clipAmmo > 0;
     }
 
-    return this.player.weapons.grenade.ammo > 0;
+    return this.player.weapons.grenade.unlocked && this.player.weapons.grenade.ammo > 0;
   }
 
   handleEmptyTrigger() {
@@ -653,6 +759,46 @@ export class GameScene extends Phaser.Scene {
     this.flashUi("#ff8b7d");
   }
 
+  swingBat(pointer) {
+    if (this.isRoundFinished || this.isPaused) {
+      return;
+    }
+
+    if (this.time.now - this.lastShotAt < BAT_COOLDOWN_MS) {
+      return;
+    }
+
+    this.lastShotAt = this.time.now;
+
+    const swingAngle = pointer
+      ? Phaser.Math.Angle.Between(this.player.x, this.player.y, pointer.worldX, pointer.worldY)
+      : this.player.facingAngle;
+
+    this.showBatSwing(swingAngle);
+
+    this.zombies.getChildren().forEach((zombie) => {
+      if (!zombie.active) {
+        return;
+      }
+
+      const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, zombie.x, zombie.y);
+      if (distance > BAT_RADIUS) {
+        return;
+      }
+
+      const angleToZombie = Phaser.Math.Angle.Between(this.player.x, this.player.y, zombie.x, zombie.y);
+      const angleDelta = Phaser.Math.Angle.Wrap(angleToZombie - swingAngle);
+      if (Math.abs(angleDelta) > BAT_ARC / 2) {
+        return;
+      }
+
+      const died = zombie.takeDamage(BAT_DAMAGE);
+      if (died) {
+        this.kills += 1;
+      }
+    });
+  }
+
   fireShotgun(pointer) {
     if (this.isRoundFinished || this.isPaused) {
       return;
@@ -662,7 +808,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.player.weapons.shotgun.clipAmmo <= 0) {
+    if (!this.player.weapons.shotgun.unlocked || this.player.weapons.shotgun.clipAmmo <= 0) {
       this.flashUi("#ff8b7d");
       return;
     }
@@ -692,11 +838,11 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.time.now - this.lastShotAt < 150) {
+    if (this.time.now - this.lastShotAt < PISTOL_COOLDOWN_MS) {
       return;
     }
 
-    if (this.player.weapons.pistol.clipAmmo <= 0) {
+    if (!this.player.weapons.pistol.unlocked || this.player.weapons.pistol.clipAmmo <= 0) {
       this.flashUi("#ff8b7d");
       return;
     }
@@ -717,11 +863,11 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.time.now - this.lastShotAt < 450) {
+    if (this.time.now - this.lastShotAt < GRENADE_COOLDOWN_MS) {
       return;
     }
 
-    if (this.player.weapons.grenade.ammo <= 0) {
+    if (!this.player.weapons.grenade.unlocked || this.player.weapons.grenade.ammo <= 0) {
       this.flashUi("#ff8b7d");
       return;
     }
@@ -757,7 +903,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.player.currentWeapon === WEAPONS.grenade.key) {
+    if (this.player.currentWeapon === WEAPONS.bat.key || this.player.currentWeapon === WEAPONS.grenade.key) {
       this.flashUi("#ff8b7d");
       return;
     }
@@ -765,7 +911,7 @@ export class GameScene extends Phaser.Scene {
     const weapon = this.player.weapons[this.player.currentWeapon];
     const clipSize = WEAPONS[this.player.currentWeapon].clipSize;
 
-    if (weapon.clipAmmo >= clipSize || weapon.reserveAmmo <= 0) {
+    if (!weapon.unlocked || weapon.clipAmmo >= clipSize || weapon.reserveAmmo <= 0) {
       this.flashUi("#ff8b7d");
       return;
     }
@@ -782,8 +928,22 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    if (weaponKey !== WEAPONS.bat.key && !this.player.weapons[weaponKey].unlocked) {
+      this.flashUi("#ff8b7d");
+      return;
+    }
+
     this.player.currentWeapon = weaponKey;
     this.flashUi("#9cd4ff");
+  }
+
+  showBatSwing(angle) {
+    const arc = this.add.graphics().setDepth(5);
+    arc.lineStyle(6, 0xf0d28f, 0.9);
+    arc.beginPath();
+    arc.arc(this.player.x, this.player.y, BAT_RADIUS, angle - BAT_ARC / 2, angle + BAT_ARC / 2, false);
+    arc.strokePath();
+    this.time.delayedCall(90, () => arc.destroy());
   }
 
   showMuzzleFlash(angle) {
@@ -878,6 +1038,115 @@ export class GameScene extends Phaser.Scene {
         shouldRespawn: pickup.shouldRespawn,
       });
       this.pickups.add(respawned);
+    });
+  }
+
+  handleHouseSearch(player, house) {
+    if (!house.active || house.getData("searched")) {
+      return;
+    }
+
+    const distance = Phaser.Math.Distance.Between(player.x, player.y, house.x, house.y);
+    if (distance > HOUSE_SEARCH_RADIUS) {
+      return;
+    }
+
+    house.setData("searched", true);
+    house.setTint(0x7d8791);
+
+    const loot = this.rollHouseLoot();
+    this.applyHouseLoot(loot);
+    this.showHouseLootText(house.x, house.y - 56, loot.label);
+    this.flashUi(loot.type === "weapon" ? "#9cd4ff" : "#f9d27b");
+  }
+
+  rollHouseLoot() {
+    const lockedWeapons = [WEAPONS.shotgun.key, WEAPONS.pistol.key, WEAPONS.grenade.key].filter(
+      (weaponKey) => !this.player.weapons[weaponKey].unlocked
+    );
+
+    const shouldGiveWeapon = lockedWeapons.length > 0 && Math.random() < HOUSE_LOOT_WEAPON_CHANCE;
+    if (shouldGiveWeapon) {
+      const weaponKey = Phaser.Utils.Array.GetRandom(lockedWeapons);
+      return {
+        type: "weapon",
+        weaponKey,
+        label: `Found ${WEAPONS[weaponKey].label}`,
+      };
+    }
+
+    const pickupType = Phaser.Utils.Array.GetRandom(["shotgunAmmo", "pistolAmmo", "grenade"]);
+    const ammoLabel =
+      pickupType === "shotgunAmmo"
+        ? "Found shotgun ammo"
+        : pickupType === "pistolAmmo"
+          ? "Found pistol ammo"
+          : "Found grenade";
+
+    return {
+      type: "ammo",
+      pickupType,
+      label: ammoLabel,
+    };
+  }
+
+  applyHouseLoot(loot) {
+    if (loot.type === "weapon") {
+      this.unlockWeapon(loot.weaponKey);
+      return;
+    }
+
+    if (loot.pickupType === "shotgunAmmo") {
+      this.player.weapons.shotgun.reserveAmmo += 10;
+      return;
+    }
+
+    if (loot.pickupType === "pistolAmmo") {
+      this.player.weapons.pistol.reserveAmmo += 15;
+      return;
+    }
+
+    this.player.weapons.grenade.ammo += 1;
+  }
+
+  unlockWeapon(weaponKey) {
+    const weapon = this.player.weapons[weaponKey];
+    if (!weapon || weapon.unlocked) {
+      return;
+    }
+
+    weapon.unlocked = true;
+    if (weaponKey === WEAPONS.shotgun.key) {
+      weapon.clipAmmo = SHOTGUN_CLIP_SIZE;
+      weapon.reserveAmmo += SHOTGUN_STARTER_RESERVE;
+      return;
+    }
+
+    if (weaponKey === WEAPONS.pistol.key) {
+      weapon.clipAmmo = PISTOL_CLIP_SIZE;
+      weapon.reserveAmmo += PISTOL_STARTER_RESERVE;
+      return;
+    }
+
+    weapon.ammo += 2;
+  }
+
+  showHouseLootText(x, y, label) {
+    const text = this.add.text(x, y, label, {
+      fontFamily: "Arial Black, sans-serif",
+      fontSize: "16px",
+      color: "#fff2c7",
+      stroke: "#2d1b0a",
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(8);
+
+    this.tweens.add({
+      targets: text,
+      y: y - 26,
+      alpha: 0,
+      duration: 900,
+      ease: "Sine.Out",
+      onComplete: () => text.destroy(),
     });
   }
 
@@ -994,6 +1263,20 @@ export class GameScene extends Phaser.Scene {
   cycleShotRange() {
     this.rangePresetIndex = (this.rangePresetIndex + 1) % RANGE_PRESETS.length;
     this.flashUi("#ffd78e");
+  }
+
+  formatRangedAmmo(weapon) {
+    if (!weapon.unlocked) {
+      return `LOCK/${weapon.reserveAmmo}`;
+    }
+    return `${weapon.clipAmmo}/${weapon.reserveAmmo}`;
+  }
+
+  formatGrenadeAmmo(weapon) {
+    if (!weapon.unlocked) {
+      return `LOCK/${weapon.ammo}`;
+    }
+    return `${weapon.ammo}`;
   }
 
   getCurrentRangePreset() {

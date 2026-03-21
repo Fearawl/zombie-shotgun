@@ -28,6 +28,8 @@ export class BootScene extends Phaser.Scene {
     this.makeRoundedRectTexture("shell-icon", 12, 28, 4, 0xd6ab5d, 0x6b471f);
     this.makeRoundedRectTexture("pistol-icon", 12, 20, 3, 0xd9edf9, 0x4d6f87);
     this.makeCircleTexture("grenade-icon", 12, 0xb4c0ca, 0x42505e);
+    this.makeHouseTexture("house", 110, 86);
+    this.makeTreeTexture("tree", 70, 96);
   }
 
   makeCircleTexture(key, size, fillColor, strokeColor) {
@@ -48,6 +50,47 @@ export class BootScene extends Phaser.Scene {
     graphics.lineStyle(4, strokeColor, 1);
     graphics.fillRoundedRect(2, 2, width - 4, height - 4, radius);
     graphics.strokeRoundedRect(2, 2, width - 4, height - 4, radius);
+    graphics.generateTexture(key, width, height);
+    graphics.destroy();
+  }
+
+  makeHouseTexture(key, width, height) {
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    graphics.fillStyle(0x2e2118, 0.26);
+    graphics.fillEllipse(width / 2, height - 10, width * 0.72, 20);
+    graphics.fillStyle(0xb97e4b, 1);
+    graphics.lineStyle(4, 0x5a3518, 1);
+    graphics.fillRoundedRect(12, 28, width - 24, height - 34, 8);
+    graphics.strokeRoundedRect(12, 28, width - 24, height - 34, 8);
+    graphics.fillStyle(0x6b3a25, 1);
+    graphics.fillTriangle(width / 2, 4, width - 6, 34, 6, 34);
+    graphics.lineStyle(4, 0x3a1f12, 1);
+    graphics.strokeTriangle(width / 2, 4, width - 6, 34, 6, 34);
+    graphics.fillStyle(0xf3cf7b, 0.95);
+    graphics.fillRoundedRect(width / 2 - 12, height - 34, 24, 28, 5);
+    graphics.fillStyle(0xbfd7f1, 0.92);
+    graphics.fillRoundedRect(24, 40, 18, 16, 4);
+    graphics.fillRoundedRect(width - 42, 40, 18, 16, 4);
+    graphics.generateTexture(key, width, height);
+    graphics.destroy();
+  }
+
+  makeTreeTexture(key, width, height) {
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    graphics.fillStyle(0x112015, 0.22);
+    graphics.fillEllipse(width / 2, height - 10, width * 0.58, 18);
+    graphics.fillStyle(0x6b4424, 1);
+    graphics.fillRoundedRect(width / 2 - 8, height - 34, 16, 28, 5);
+    graphics.fillStyle(0x2b6a3b, 1);
+    graphics.lineStyle(3, 0x1a4124, 1);
+    graphics.fillCircle(width / 2, 40, 24);
+    graphics.strokeCircle(width / 2, 40, 24);
+    graphics.fillCircle(width / 2 - 18, 52, 18);
+    graphics.strokeCircle(width / 2 - 18, 52, 18);
+    graphics.fillCircle(width / 2 + 18, 52, 18);
+    graphics.strokeCircle(width / 2 + 18, 52, 18);
+    graphics.fillCircle(width / 2, 62, 20);
+    graphics.strokeCircle(width / 2, 62, 20);
     graphics.generateTexture(key, width, height);
     graphics.destroy();
   }
