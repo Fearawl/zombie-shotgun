@@ -37,6 +37,8 @@ const MAX_ACTIVE_ZOMBIES = 48;
 const MAX_DROPPED_PICKUPS = 24;
 const DROPPED_PICKUP_LIFETIME_MS = 18000;
 const HOUSE_LOOT_WEAPON_CHANCE = 0.45;
+const WORLD_WIDTH = 3200;
+const WORLD_HEIGHT = 2200;
 const RANGE_PRESETS = [
   { label: "Short", screenRatio: 0.22, color: 0xa0d8ff },
   { label: "Medium", screenRatio: 0.3, color: 0xf3d57d },
@@ -79,7 +81,7 @@ export class GameScene extends Phaser.Scene {
     };
     this.zombieSpeedMultiplier = 1;
 
-    this.physics.world.setBounds(0, 0, 2200, 1600);
+    this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.cameras.main.setBackgroundColor("#17261b");
 
     this.drawArena();
@@ -185,6 +187,11 @@ export class GameScene extends Phaser.Scene {
       [1750, 980, 0.9],
       [860, 1280, 1],
       [1540, 1240, 1.06],
+      [2140, 560, 1.04],
+      [2380, 840, 0.96],
+      [2660, 1180, 1.1],
+      [2860, 1560, 1.02],
+      [2260, 1820, 0.94],
     ];
 
     trees.forEach(([x, y, scale]) => this.addTree(x, y, scale));
@@ -198,6 +205,9 @@ export class GameScene extends Phaser.Scene {
       [1470, 830, 176, 136],
       [870, 1060, 168, 128],
       [1640, 1180, 176, 136],
+      [2260, 760, 176, 136],
+      [2550, 1160, 184, 140],
+      [2850, 1620, 176, 136],
     ];
 
     houses.forEach(([x, y, width, height]) => this.addHouse(x, y, width, height));
@@ -215,9 +225,11 @@ export class GameScene extends Phaser.Scene {
     const halfWidth = width / 2;
     const halfHeight = height / 2;
     const wallThickness = 12;
-    const doorWidth = 34;
+    const doorWidth = 58;
     const roofHeight = 34;
     const floorTop = y - halfHeight + roofHeight - 2;
+    const bottomWallWidth = (width - doorWidth) / 2;
+    const bottomWallOffset = doorWidth / 2 + bottomWallWidth / 2;
 
     const floor = this.add.graphics().setDepth(2);
     floor.fillStyle(0x82786d, 0.96);
@@ -253,15 +265,15 @@ export class GameScene extends Phaser.Scene {
     this.addWall(x - halfWidth + wallThickness / 2, y, wallThickness, height);
     this.addWall(x + halfWidth - wallThickness / 2, y, wallThickness, height);
     this.addWall(
-      x - (doorWidth + wallThickness) / 2,
+      x - bottomWallOffset,
       y + halfHeight - wallThickness / 2,
-      width / 2 - doorWidth / 2,
+      bottomWallWidth,
       wallThickness
     );
     this.addWall(
-      x + (doorWidth + wallThickness) / 2,
+      x + bottomWallOffset,
       y + halfHeight - wallThickness / 2,
-      width / 2 - doorWidth / 2,
+      bottomWallWidth,
       wallThickness
     );
     this.addWall(x - 4, floorTop + 66, wallThickness, height - roofHeight - 26);
@@ -600,7 +612,7 @@ export class GameScene extends Phaser.Scene {
 
   setupCamera() {
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
-    this.cameras.main.setBounds(0, 0, 2200, 1600);
+    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.cameras.main.setZoom(1.05);
   }
 
@@ -1613,25 +1625,28 @@ export class GameScene extends Phaser.Scene {
   drawArena() {
     const graphics = this.add.graphics();
     graphics.fillStyle(0x203629, 1);
-    graphics.fillRect(0, 0, 2200, 1600);
+    graphics.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
     graphics.lineStyle(1, 0x2b523a, 0.9);
-    for (let y = 0; y < 1600; y += 72) {
-      graphics.lineBetween(0, y, 2200, y);
+    for (let y = 0; y < WORLD_HEIGHT; y += 72) {
+      graphics.lineBetween(0, y, WORLD_WIDTH, y);
     }
-    for (let x = 0; x < 2200; x += 72) {
-      graphics.lineBetween(x, 0, x, 1600);
+    for (let x = 0; x < WORLD_WIDTH; x += 72) {
+      graphics.lineBetween(x, 0, x, WORLD_HEIGHT);
     }
 
     graphics.lineStyle(2, 0x3a6b4d, 0.4);
-    for (let x = -500; x < 2300; x += 140) {
-      graphics.lineBetween(x, 0, x + 560, 1600);
+    for (let x = -500; x < WORLD_WIDTH + 120; x += 140) {
+      graphics.lineBetween(x, 0, x + 560, WORLD_HEIGHT);
     }
 
     graphics.fillStyle(0x43633b, 0.9);
     graphics.fillEllipse(560, 460, 520, 200);
     graphics.fillEllipse(1480, 1080, 620, 220);
     graphics.fillEllipse(1780, 420, 420, 170);
+    graphics.fillEllipse(2360, 920, 560, 220);
+    graphics.fillEllipse(2820, 1540, 620, 240);
+    graphics.fillEllipse(1080, 1820, 720, 250);
   }
 
   boostZombieSpeed() {
