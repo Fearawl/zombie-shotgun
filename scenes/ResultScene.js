@@ -8,22 +8,33 @@ export class ResultScene extends Phaser.Scene {
     const kills = data?.kills ?? 0;
     const survivedSeconds = data?.survivedSeconds ?? 0;
     const bossesSpawned = data?.bossesSpawned ?? 0;
+    const victory = data?.victory ?? false;
 
     this.cameras.main.setBackgroundColor("#101922");
     this.drawBackdrop(width, height);
 
     this.add
-      .text(width / 2, 110, "Game Over", {
+      .text(width / 2, 110, victory ? "Rescued" : "Game Over", {
         fontFamily: "Arial Black, sans-serif",
         fontSize: "40px",
-        color: "#fff1cf",
+        color: victory ? "#d6ffd9" : "#fff1cf",
         stroke: "#24170f",
         strokeThickness: 6,
       })
       .setOrigin(0.5);
 
+    if (victory) {
+      this.add
+        .text(width / 2, 160, "Helicopter evacuation complete", {
+          fontFamily: "Verdana, sans-serif",
+          fontSize: "20px",
+          color: "#aee8b5",
+        })
+        .setOrigin(0.5);
+    }
+
     this.add
-      .text(width / 2, 220, `Zombies eliminated: ${kills}`, {
+      .text(width / 2, victory ? 228 : 220, `Zombies eliminated: ${kills}`, {
         fontFamily: "Verdana, sans-serif",
         fontSize: "30px",
         color: "#bfeec5",
@@ -31,7 +42,7 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, 270, `Survived: ${survivedSeconds}s`, {
+      .text(width / 2, victory ? 278 : 270, `Survived: ${survivedSeconds}s`, {
         fontFamily: "Verdana, sans-serif",
         fontSize: "20px",
         color: "#c0d5e6",
@@ -39,7 +50,7 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, 304, `Bosses spawned: ${bossesSpawned}`, {
+      .text(width / 2, victory ? 312 : 304, `Bosses spawned: ${bossesSpawned}`, {
         fontFamily: "Verdana, sans-serif",
         fontSize: "20px",
         color: "#ffb390",

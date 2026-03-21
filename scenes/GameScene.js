@@ -42,6 +42,8 @@ const MEDKIT_HEAL_AMOUNT = 5;
 const HOUSE_LOOT_WEAPON_CHANCE = 0.45;
 const WORLD_WIDTH = 3200;
 const WORLD_HEIGHT = 2200;
+const SURVIVAL_GOAL_MS = 7 * 60 * 1000;
+const EXTRACTION_POINT = { x: 2940, y: 1980 };
 const RANGE_PRESETS = [
   { label: "Short", screenRatio: 0.22, color: 0xa0d8ff },
   { label: "Medium", screenRatio: 0.3, color: 0xf3d57d },
@@ -163,6 +165,39 @@ export class GameScene extends Phaser.Scene {
     this.createGraves();
     this.createBoundaryTrees();
     this.createScatteredTrees();
+    this.createExtractionZone();
+  }
+
+  createExtractionZone() {
+    const { x, y } = EXTRACTION_POINT;
+    this.extractionMarker = this.add.container(x, y).setDepth(2.2);
+
+    const ring = this.add.graphics();
+    ring.lineStyle(5, 0xcfd8de, 0.95);
+    ring.strokeCircle(0, 0, 54);
+    ring.lineStyle(3, 0xb64d4d, 0.9);
+    ring.strokeCircle(0, 0, 38);
+    ring.lineStyle(2, 0xd5e6f2, 0.55);
+    ring.lineBetween(-46, 0, 46, 0);
+    ring.lineBetween(0, -46, 0, 46);
+
+    const sosText = this.add.text(0, -8, "SOS", {
+      fontFamily: "Arial Black, sans-serif",
+      fontSize: "30px",
+      color: "#fff1e0",
+      stroke: "#7a1e1e",
+      strokeThickness: 6,
+    }).setOrigin(0.5);
+
+    const padText = this.add.text(0, 30, "Helipad", {
+      fontFamily: "Verdana, sans-serif",
+      fontSize: "14px",
+      color: "#d2e2ee",
+      stroke: "#16232c",
+      strokeThickness: 3,
+    }).setOrigin(0.5);
+
+    this.extractionMarker.add([ring, sosText, padText]);
   }
 
   createGraves() {
@@ -1270,6 +1305,10 @@ export class GameScene extends Phaser.Scene {
     const bossSecondsLeft = this.bossTimer
       ? Math.max(0, Math.ceil(this.bossTimer.getRemaining() / 1000))
       : Math.ceil(this.settings.bossSpawnIntervalMs / 1000);
+    const survivalSecondsLeft = Math.max(
+      0,
+      Math.ceil((SURVIVAL_GOAL_MS - (this.time.now - this.roundStartedAt)) / 1000)
+    );
     const shotgun = this.player.weapons.shotgun;
     const pistol = this.player.weapons.pistol;
     const grenade = this.player.weapons.grenade;
@@ -1279,7 +1318,7 @@ export class GameScene extends Phaser.Scene {
       `BT ready  SG ${this.formatRangedAmmo(shotgun)}  PI ${this.formatRangedAmmo(pistol)}  GR ${this.formatGrenadeAmmo(grenade)}`
     );
     this.killsText.setText(`Zombies down: ${this.kills}`);
-    this.bossText.setText(`Boss in: ${bossSecondsLeft}s`);
+    this.bossText.setText(`Evac in: ${survivalSecondsLeft}s  Boss in: ${bossSecondsLeft}s`);
     this.rangeText.setText(`Range: ${this.getCurrentRangePreset().label} (RMB)  Houses: loot weapon or ammo`);
   }
 
@@ -1562,6 +1601,16 @@ export class GameScene extends Phaser.Scene {
         }
       },
     });
+
+    this.extractionTimer = this.time.addEvent({
+      delay: SURVIVAL_GOAL_MS,
+      loop: false,
+      callback: () => {
+        if (!this.isRoundFinished) {
+          this.startExtractionSequence();
+        }
+      },
+    });
   }
 
   explodeGrenade(x, y) {
@@ -1828,11 +1877,107 @@ export class GameScene extends Phaser.Scene {
       this.bossTimer.remove(false);
       this.bossTimer = null;
     }
+    if (this.extractionTimer) {
+      this.extractionTimer.remove(false);
+      this.extractionTimer = null;
+    }
     this.scene.start("ResultScene", {
       kills: this.kills,
       survivedSeconds: Math.floor((this.time.now - this.roundStartedAt) / 1000),
       bossesSpawned: this.bossesSpawned,
     });
+  }
+
+  startExtractionSequence() {
+    if (this.isRoundFinished) {
+      return;
+    }
+
+    this.isRoundFinished = true;
+    this.clearPauseState();
+    this.player.setVelocity(0, 0);
+    this.zombies.getChildren().forEach((zombie) => {
+      if (zombie && zombie.active) {
+        zombie.setVelocity(0, 0);
+        zombie.canMove = false;
+      }
+    });
+    if (this.spawnTimer) {
+      this.spawnTimer.remove(false);
+      this.spawnTimer = null;
+    }
+    if (this.bossTimer) {
+      this.bossTimer.remove(false);
+      this.bossTimer = null;
+    }
+    if (this.extractionTimer) {
+      this.extractionTimer.remove(false);
+      this.extractionTimer = null;
+    }
+
+    this.showHouseLootText(EXTRACTION_POINT.x, EXTRACTION_POINT.y - 88, "Helicopter inbound");
+    const helicopter = this.createHelicopter(EXTRACTION_POINT.x - 520, EXTRACTION_POINT.y - 260);
+
+    this.tweens.add({
+      targets: helicopter,
+      x: EXTRACTION_POINT.x,
+      y: EXTRACTION_POINT.y - 28,
+      duration: 3200,
+      ease: "Sine.Out",
+      onComplete: () => {
+        if (!this.isSceneActive()) {
+          return;
+        }
+        this.showHouseLootText(EXTRACTION_POINT.x, EXTRACTION_POINT.y - 112, "Evacuated");
+        this.time.delayedCall(1200, () => {
+          if (!this.isSceneActive()) {
+            return;
+          }
+          helicopter.destroy();
+          this.scene.start("ResultScene", {
+            kills: this.kills,
+            survivedSeconds: Math.floor((this.time.now - this.roundStartedAt) / 1000),
+            bossesSpawned: this.bossesSpawned,
+            victory: true,
+          });
+        });
+      },
+    });
+  }
+
+  createHelicopter(x, y) {
+    const helicopter = this.add.container(x, y).setDepth(8);
+    const body = this.add.graphics();
+    body.fillStyle(0x3c4b52, 1);
+    body.lineStyle(3, 0x1b2428, 1);
+    body.fillRoundedRect(-44, -14, 88, 28, 10);
+    body.strokeRoundedRect(-44, -14, 88, 28, 10);
+    body.fillStyle(0x86b8d5, 0.9);
+    body.fillRoundedRect(-18, -10, 24, 14, 5);
+    body.fillStyle(0x2f3b40, 1);
+    body.fillTriangle(34, -8, 60, -2, 34, 8);
+    body.lineStyle(4, 0x161d20, 1);
+    body.lineBetween(-56, -22, 56, -22);
+    body.lineBetween(54, 0, 80, 0);
+    body.lineBetween(-18, 18, -30, 32);
+    body.lineBetween(18, 18, 30, 32);
+    body.lineBetween(-36, 32, 36, 32);
+    helicopter.add(body);
+
+    const rotor = this.add.graphics();
+    rotor.lineStyle(5, 0xdfe7ee, 0.95);
+    rotor.lineBetween(-72, 0, 72, 0);
+    rotor.setY(-24);
+    helicopter.add(rotor);
+
+    this.tweens.add({
+      targets: rotor,
+      angle: 360,
+      duration: 160,
+      repeat: -1,
+    });
+
+    return helicopter;
   }
 
   spawnZombieDrop(x, y, pickupType) {
