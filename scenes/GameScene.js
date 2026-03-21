@@ -257,47 +257,80 @@ export class GameScene extends Phaser.Scene {
 
   createMilitaryBase() {
     const x = 3380;
-    const y = 760;
-    const width = 520;
-    const height = 360;
+    const y = 860;
+    const width = 860;
+    const height = 620;
     const halfWidth = width / 2;
     const halfHeight = height / 2;
     const wallThickness = 14;
-    const doorWidth = 120;
+    const doorWidth = 140;
     const doorY = y + halfHeight - wallThickness / 2;
     const leftGateWidth = (width - doorWidth) / 2;
     const leftGateCenterX = x - doorWidth / 2 - leftGateWidth / 2;
     const rightGateCenterX = x + doorWidth / 2 + leftGateWidth / 2;
+    const buildingWidth = width - 120;
+    const buildingHeight = 238;
+    const buildingX = x;
+    const buildingY = y - 138;
+    const buildingHalfWidth = buildingWidth / 2;
+    const buildingHalfHeight = buildingHeight / 2;
+    const roomSplitX = buildingX;
+    const roomDoorGap = 88;
+    const roomMidY = buildingY + 24;
+    const roomLeftX = buildingX - buildingHalfWidth + 18;
+    const roomRightX = buildingX + buildingHalfWidth - 18;
+    const courtyardTop = buildingY + buildingHalfHeight + 18;
 
     const floor = this.add.graphics().setDepth(1.8);
-    floor.fillStyle(0x4d594c, 0.55);
+    floor.fillStyle(0x5b675d, 0.42);
     floor.fillRect(x - halfWidth + 10, y - halfHeight + 10, width - 20, height - 20);
+    floor.fillStyle(0x4b5c4a, 0.55);
+    floor.fillRect(x - halfWidth + 24, courtyardTop, width - 48, height - (courtyardTop - (y - halfHeight)) - 26);
     floor.lineStyle(3, 0x69756a, 0.35);
     floor.strokeRect(x - halfWidth + 18, y - halfHeight + 18, width - 36, height - 36);
+    floor.lineStyle(2, 0x9aa89d, 0.2);
+    floor.strokeRect(buildingX - buildingHalfWidth + 10, buildingY - buildingHalfHeight + 10, buildingWidth - 20, buildingHeight - 20);
 
     const roomLines = this.add.graphics().setDepth(2);
     roomLines.lineStyle(4, 0x8b988c, 0.8);
-    roomLines.lineBetween(x - 40, y - halfHeight + 14, x - 40, y + 20);
-    roomLines.lineBetween(x + 70, y - 28, x + halfWidth - 24, y - 28);
-    roomLines.lineBetween(x + 70, y + 52, x + halfWidth - 24, y + 52);
+    roomLines.strokeRect(buildingX - buildingHalfWidth, buildingY - buildingHalfHeight, buildingWidth, buildingHeight);
+    roomLines.lineBetween(roomSplitX, buildingY - buildingHalfHeight + 14, roomSplitX, roomMidY - roomDoorGap / 2);
+    roomLines.lineBetween(roomSplitX, roomMidY + roomDoorGap / 2, roomSplitX, buildingY + buildingHalfHeight - 14);
+    roomLines.lineStyle(3, 0x6c7d70, 0.65);
+    roomLines.lineBetween(x - halfWidth + 28, courtyardTop, x + halfWidth - 28, courtyardTop);
+    roomLines.lineBetween(x - 160, courtyardTop + 108, x + 160, courtyardTop + 108);
 
     const roof = this.add.graphics().setDepth(5);
     roof.fillStyle(0x5c665d, 1);
-    roof.fillRect(x - halfWidth, y - halfHeight, width, height);
+    roof.fillRect(buildingX - buildingHalfWidth, buildingY - buildingHalfHeight, buildingWidth, buildingHeight);
     roof.lineStyle(6, 0x2c332d, 1);
-    roof.strokeRect(x - halfWidth, y - halfHeight, width, height);
+    roof.strokeRect(buildingX - buildingHalfWidth, buildingY - buildingHalfHeight, buildingWidth, buildingHeight);
     roof.fillStyle(0x9eb3a0, 0.3);
-    roof.fillRect(x - 40, y - halfHeight + 32, 140, 42);
-    roof.fillRect(x + 120, y - halfHeight + 92, 110, 38);
+    roof.fillRect(buildingX - 180, buildingY - buildingHalfHeight + 28, 160, 44);
+    roof.fillRect(buildingX + 40, buildingY - buildingHalfHeight + 82, 150, 40);
 
     this.addWall(x, y - halfHeight + wallThickness / 2, width, wallThickness);
     this.addWall(x - halfWidth + wallThickness / 2, y, wallThickness, height);
     this.addWall(x + halfWidth - wallThickness / 2, y, wallThickness, height);
     this.addWall(leftGateCenterX, doorY, leftGateWidth, wallThickness);
     this.addWall(rightGateCenterX, doorY, leftGateWidth, wallThickness);
-    this.addWall(x - 40, y - halfHeight / 2 + 10, wallThickness, halfHeight + 10);
-    this.addWall(x + width * 0.23, y - 28, width * 0.28, wallThickness);
-    this.addWall(x + width * 0.23, y + 52, width * 0.28, wallThickness);
+    this.addWall(buildingX, buildingY - buildingHalfHeight + wallThickness / 2, buildingWidth, wallThickness);
+    this.addWall(buildingX - buildingHalfWidth + wallThickness / 2, buildingY, wallThickness, buildingHeight);
+    this.addWall(buildingX + buildingHalfWidth - wallThickness / 2, buildingY, wallThickness, buildingHeight);
+    this.addWall(
+      buildingX - buildingHalfWidth / 2 - roomDoorGap / 4,
+      buildingY + buildingHalfHeight - wallThickness / 2,
+      buildingWidth / 2 - roomDoorGap / 2,
+      wallThickness
+    );
+    this.addWall(
+      buildingX + buildingHalfWidth / 2 + roomDoorGap / 4,
+      buildingY + buildingHalfHeight - wallThickness / 2,
+      buildingWidth / 2 - roomDoorGap / 2,
+      wallThickness
+    );
+    this.addWall(roomSplitX, (buildingY - buildingHalfHeight + 14 + roomMidY - roomDoorGap / 2) / 2, wallThickness, roomMidY - roomDoorGap / 2 - (buildingY - buildingHalfHeight + 14));
+    this.addWall(roomSplitX, (roomMidY + roomDoorGap / 2 + buildingY + buildingHalfHeight - 14) / 2, wallThickness, buildingY + buildingHalfHeight - 14 - (roomMidY + roomDoorGap / 2));
 
     const gate = this.obstacles.create(x, doorY, "wall-block");
     gate.setDisplaySize(doorWidth, wallThickness + 6);
@@ -311,7 +344,7 @@ export class GameScene extends Phaser.Scene {
       weaponKey: WEAPONS.akm.key,
       label: "Found AKM",
     };
-    const lootPosition = new Phaser.Math.Vector2(x + 128, y - 74);
+    const lootPosition = new Phaser.Math.Vector2(buildingX + 160, buildingY + 42);
     const lootVisual = this.createHouseLootVisual(loot, lootPosition.x, lootPosition.y);
     lootVisual.setVisible(false);
 
@@ -326,15 +359,17 @@ export class GameScene extends Phaser.Scene {
       gate,
       gateBroken: false,
       interiorBounds: new Phaser.Geom.Rectangle(x - halfWidth + 18, y - halfHeight + 18, width - 36, height - 36),
+      buildingBounds: new Phaser.Geom.Rectangle(buildingX - buildingHalfWidth + 18, buildingY - buildingHalfHeight + 18, buildingWidth - 36, buildingHeight - 36),
       loot,
       lootVisual,
       lootPosition,
       collected: false,
     };
 
-    this.spawnZombie(x - 100, y - 60, { emerge: false, isAcid: true, maxHealth: 26, moveSpeed: 50 });
-    this.spawnZombie(x + 54, y - 20, { emerge: false, isAcid: true, maxHealth: 24, moveSpeed: 48 });
-    this.spawnZombie(x + 110, y + 88, { emerge: false, isAcid: true, maxHealth: 24, moveSpeed: 50 });
+    this.spawnZombie(buildingX - 150, buildingY - 30, { emerge: false, isAcid: true, maxHealth: 26, moveSpeed: 50 });
+    this.spawnZombie(buildingX + 120, buildingY - 18, { emerge: false, isAcid: true, maxHealth: 24, moveSpeed: 48 });
+    this.spawnZombie(x - 120, courtyardTop + 110, { emerge: false, isAcid: true, maxHealth: 24, moveSpeed: 50 });
+    this.spawnZombie(x + 160, courtyardTop + 74, { emerge: false, isAcid: true, maxHealth: 24, moveSpeed: 50 });
   }
 
   createBoundaryTrees() {
@@ -2042,11 +2077,12 @@ export class GameScene extends Phaser.Scene {
     }
 
     const base = this.militaryBase;
-    const isInside = Phaser.Geom.Rectangle.Contains(base.interiorBounds, this.player.x, this.player.y);
-    base.roof.setAlpha(isInside ? 0.18 : 1);
-    base.roomLines.setAlpha(isInside ? 1 : 0.2);
+    const isInsideBase = Phaser.Geom.Rectangle.Contains(base.interiorBounds, this.player.x, this.player.y);
+    const isInsideBuilding = Phaser.Geom.Rectangle.Contains(base.buildingBounds, this.player.x, this.player.y);
+    base.roof.setAlpha(isInsideBuilding ? 0.18 : 1);
+    base.roomLines.setAlpha(isInsideBase ? 1 : 0.2);
     if (base.lootVisual) {
-      base.lootVisual.setVisible(!base.collected && isInside && base.gateBroken);
+      base.lootVisual.setVisible(!base.collected && isInsideBuilding && base.gateBroken);
     }
   }
 
