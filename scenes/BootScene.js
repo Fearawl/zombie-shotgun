@@ -56,21 +56,42 @@ export class BootScene extends Phaser.Scene {
 
   makeHouseTexture(key, width, height) {
     const graphics = this.make.graphics({ x: 0, y: 0, add: false });
-    graphics.fillStyle(0x2e2118, 0.26);
-    graphics.fillEllipse(width / 2, height - 10, width * 0.72, 20);
-    graphics.fillStyle(0xb97e4b, 1);
-    graphics.lineStyle(4, 0x5a3518, 1);
-    graphics.fillRoundedRect(12, 28, width - 24, height - 34, 8);
-    graphics.strokeRoundedRect(12, 28, width - 24, height - 34, 8);
-    graphics.fillStyle(0x6b3a25, 1);
-    graphics.fillTriangle(width / 2, 4, width - 6, 34, 6, 34);
-    graphics.lineStyle(4, 0x3a1f12, 1);
-    graphics.strokeTriangle(width / 2, 4, width - 6, 34, 6, 34);
-    graphics.fillStyle(0xf3cf7b, 0.95);
-    graphics.fillRoundedRect(width / 2 - 12, height - 34, 24, 28, 5);
-    graphics.fillStyle(0xbfd7f1, 0.92);
-    graphics.fillRoundedRect(24, 40, 18, 16, 4);
-    graphics.fillRoundedRect(width - 42, 40, 18, 16, 4);
+    graphics.fillStyle(0x202020, 0.24);
+    graphics.fillEllipse(width / 2, height - 8, width * 0.78, 20);
+
+    graphics.fillStyle(0x555a5f, 1);
+    graphics.lineStyle(5, 0x2a2f33, 1);
+    graphics.fillRoundedRect(10, 24, width - 20, height - 30, 8);
+    graphics.strokeRoundedRect(10, 24, width - 20, height - 30, 8);
+
+    graphics.fillStyle(0x7a4343, 1);
+    graphics.fillTriangle(width / 2, 4, width - 6, 30, 6, 30);
+    graphics.lineStyle(4, 0x442121, 1);
+    graphics.strokeTriangle(width / 2, 4, width - 6, 30, 6, 30);
+
+    graphics.fillStyle(0x8f969d, 1);
+    graphics.fillRoundedRect(18, 32, 28, 18, 4);
+    graphics.fillRoundedRect(52, 32, 40, 18, 4);
+    graphics.fillRoundedRect(18, 54, 36, 22, 4);
+    graphics.fillRoundedRect(58, 54, 34, 22, 4);
+
+    graphics.lineStyle(4, 0xc3c8cd, 1);
+    graphics.lineBetween(50, 28, 50, 78);
+    graphics.lineBetween(16, 52, 94, 52);
+    graphics.lineBetween(56, 52, 56, 78);
+
+    graphics.lineStyle(3, 0xf5e8ba, 0.95);
+    graphics.lineBetween(69, 61, 84, 70);
+    graphics.lineStyle(5, 0x6f4b29, 1);
+    graphics.lineBetween(66, 58, 82, 68);
+    graphics.lineStyle(2, 0xb2855b, 1);
+    graphics.lineBetween(72, 57, 86, 66);
+
+    graphics.fillStyle(0xe5d8a9, 0.95);
+    graphics.fillRoundedRect(width / 2 - 10, height - 28, 20, 22, 4);
+    graphics.fillStyle(0xcfe2f2, 0.85);
+    graphics.fillRoundedRect(22, 36, 12, 8, 3);
+    graphics.fillRoundedRect(66, 36, 12, 8, 3);
     graphics.generateTexture(key, width, height);
     graphics.destroy();
   }
