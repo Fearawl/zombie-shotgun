@@ -25,11 +25,13 @@ export class BootScene extends Phaser.Scene {
     this.makeGrenadeTexture("grenade-orb", 28);
     this.makeRoundedRectTexture("ammo-box", 50, 34, 8, 0xca8b4d, 0x5f3a1d);
     this.makeRoundedRectTexture("pistol-ammo-box", 50, 34, 8, 0x6f8fd8, 0x23385d);
+    this.makeRoundedRectTexture("akm-ammo-box", 50, 34, 8, 0xc88a48, 0x5a3314);
     this.makeRoundedRectTexture("grenade-box", 50, 34, 8, 0x7b6a8b, 0x332348);
     this.makeRoundedRectTexture("medkit-box", 50, 34, 8, 0xb45252, 0x5d1f1f);
     this.makeRoundedRectTexture("energy-box", 50, 34, 8, 0x46a6d1, 0x154d68);
     this.makeRoundedRectTexture("shell-icon", 12, 28, 4, 0xd6ab5d, 0x6b471f);
     this.makeRoundedRectTexture("pistol-icon", 12, 20, 3, 0xd9edf9, 0x4d6f87);
+    this.makeRoundedRectTexture("akm-icon", 12, 24, 3, 0xffd9a3, 0x85552a);
     this.makeGrenadeTexture("grenade-icon", 18);
     this.makeMedkitIconTexture("medkit-icon", 18);
     this.makeEnergyIconTexture("energy-icon", 18);

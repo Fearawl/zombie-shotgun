@@ -1,3 +1,5 @@
+import { GAME_VERSION } from "../src/version.js";
+
 export class StartScene extends Phaser.Scene {
   constructor() {
     super("StartScene");
@@ -29,7 +31,7 @@ export class StartScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width - 26, 24, "v047", {
+      .text(width - 26, 24, GAME_VERSION, {
         fontFamily: "Arial Black, sans-serif",
         fontSize: "26px",
         color: "#ffe59f",

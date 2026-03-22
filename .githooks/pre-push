@@ -1,0 +1,20 @@
+#!/bin/sh
+
+set -eu
+
+last_message="$(git log -1 --pretty=%s 2>/dev/null || printf '')"
+
+case "$last_message" in
+  chore:\ bump\ version\ to\ v*)
+    exit 0
+    ;;
+esac
+
+version="$(powershell -NoProfile -ExecutionPolicy Bypass -File "./scripts/bump-version.ps1")"
+
+git add src/version.js
+git commit -m "chore: bump version to ${version}" -- src/version.js
+
+printf '%s\n' "Version bumped to ${version} and committed."
+printf '%s\n' "Push stopped intentionally. Run git push again to include the new version commit."
+exit 1
