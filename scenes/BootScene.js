@@ -45,10 +45,24 @@ export class BootScene extends Phaser.Scene {
     const graphics = this.make.graphics({ x: 0, y: 0, add: false });
     const lineWidth = Math.max(1, Math.min(4, Math.floor(size * 0.18)));
     const radius = Math.max(1, size / 2 - lineWidth);
+    const centerX = size / 2;
+    const centerY = size / 2;
+
+    graphics.fillStyle(0x000000, 0.16);
+    graphics.fillEllipse(centerX + size * 0.08, centerY + size * 0.26, radius * 1.55, radius * 0.72);
+
+    graphics.fillStyle(this.shadeColor(fillColor, -34), 1);
+    graphics.fillCircle(centerX, centerY + size * 0.08, radius);
     graphics.fillStyle(fillColor, 1);
+    graphics.fillCircle(centerX, centerY - size * 0.05, radius * 0.92);
+    graphics.fillStyle(this.shadeColor(fillColor, 24), 0.95);
+    graphics.fillCircle(centerX - size * 0.12, centerY - size * 0.18, radius * 0.5);
+    graphics.fillStyle(0xffffff, 0.14);
+    graphics.fillCircle(centerX - size * 0.2, centerY - size * 0.23, radius * 0.22);
     graphics.lineStyle(lineWidth, strokeColor, 1);
-    graphics.fillCircle(size / 2, size / 2, radius);
     graphics.strokeCircle(size / 2, size / 2, radius);
+    graphics.lineStyle(Math.max(1, lineWidth - 1), this.shadeColor(strokeColor, 18), 0.55);
+    graphics.strokeCircle(centerX - size * 0.02, centerY - size * 0.04, radius * 0.82);
     graphics.generateTexture(key, size, size);
     graphics.destroy();
   }
@@ -94,26 +108,37 @@ export class BootScene extends Phaser.Scene {
 
   makeHouseTexture(key, width, height) {
     const graphics = this.make.graphics({ x: 0, y: 0, add: false });
-    graphics.fillStyle(0x202020, 0.24);
-    graphics.fillEllipse(width / 2, height - 8, width * 0.78, 20);
+    graphics.fillStyle(0x161a1e, 0.26);
+    graphics.fillEllipse(width / 2 + 4, height - 6, width * 0.82, 18);
 
-    graphics.fillStyle(0x555a5f, 1);
-    graphics.lineStyle(5, 0x2a2f33, 1);
-    graphics.fillRoundedRect(10, 24, width - 20, height - 30, 8);
-    graphics.strokeRoundedRect(10, 24, width - 20, height - 30, 8);
+    graphics.fillStyle(0x5f676d, 1);
+    graphics.lineStyle(5, 0x2a3137, 1);
+    graphics.fillRoundedRect(10, 26, width - 20, height - 32, 8);
+    graphics.strokeRoundedRect(10, 26, width - 20, height - 32, 8);
+    graphics.fillStyle(0xa2afb7, 0.26);
+    graphics.fillRoundedRect(14, 30, width - 28, 18, 6);
+    graphics.fillStyle(0x41484d, 0.55);
+    graphics.fillRect(14, height - 18, width - 28, 8);
 
-    graphics.fillStyle(0x7a4343, 1);
-    graphics.fillTriangle(width / 2, 4, width - 6, 30, 6, 30);
-    graphics.lineStyle(4, 0x442121, 1);
-    graphics.strokeTriangle(width / 2, 4, width - 6, 30, 6, 30);
+    graphics.fillStyle(0x874848, 1);
+    graphics.fillTriangle(width / 2, 2, width - 4, 30, 4, 30);
+    graphics.lineStyle(4, 0x462324, 1);
+    graphics.strokeTriangle(width / 2, 2, width - 4, 30, 4, 30);
+    graphics.lineStyle(2, 0xd4a5a5, 0.25);
+    graphics.lineBetween(width / 2, 6, width / 2, 26);
 
-    graphics.fillStyle(0x8f969d, 1);
-    graphics.fillRoundedRect(18, 32, 28, 18, 4);
-    graphics.fillRoundedRect(52, 32, 40, 18, 4);
-    graphics.fillRoundedRect(18, 54, 36, 22, 4);
-    graphics.fillRoundedRect(58, 54, 34, 22, 4);
+    graphics.fillStyle(0xa1b0ba, 1);
+    graphics.fillRoundedRect(18, 34, 28, 18, 4);
+    graphics.fillRoundedRect(52, 34, 40, 18, 4);
+    graphics.fillRoundedRect(18, 56, 36, 22, 4);
+    graphics.fillRoundedRect(58, 56, 34, 22, 4);
+    graphics.fillStyle(0xe8f7ff, 0.32);
+    graphics.fillRoundedRect(20, 36, 24, 5, 3);
+    graphics.fillRoundedRect(54, 36, 34, 5, 3);
+    graphics.fillRoundedRect(20, 58, 28, 6, 3);
+    graphics.fillRoundedRect(60, 58, 26, 6, 3);
 
-    graphics.lineStyle(4, 0xc3c8cd, 1);
+    graphics.lineStyle(4, 0xcfd8de, 1);
     graphics.lineBetween(50, 28, 50, 78);
     graphics.lineBetween(16, 52, 94, 52);
     graphics.lineBetween(56, 52, 56, 78);
@@ -136,20 +161,26 @@ export class BootScene extends Phaser.Scene {
 
   makeTreeTexture(key, width, height) {
     const graphics = this.make.graphics({ x: 0, y: 0, add: false });
-    graphics.fillStyle(0x112015, 0.22);
-    graphics.fillEllipse(width / 2, height - 10, width * 0.58, 18);
-    graphics.fillStyle(0x6b4424, 1);
-    graphics.fillRoundedRect(width / 2 - 8, height - 34, 16, 28, 5);
-    graphics.fillStyle(0x2b6a3b, 1);
-    graphics.lineStyle(3, 0x1a4124, 1);
-    graphics.fillCircle(width / 2, 40, 24);
-    graphics.strokeCircle(width / 2, 40, 24);
-    graphics.fillCircle(width / 2 - 18, 52, 18);
-    graphics.strokeCircle(width / 2 - 18, 52, 18);
+    graphics.fillStyle(0x0d1610, 0.24);
+    graphics.fillEllipse(width / 2 + 3, height - 8, width * 0.6, 16);
+    graphics.fillStyle(0x704826, 1);
+    graphics.fillRoundedRect(width / 2 - 8, height - 36, 16, 30, 5);
+    graphics.fillStyle(0x8d5b31, 0.4);
+    graphics.fillRoundedRect(width / 2 - 4, height - 34, 5, 24, 3);
+    graphics.fillStyle(0x255533, 1);
+    graphics.lineStyle(3, 0x163620, 1);
+    graphics.fillCircle(width / 2 + 6, 40, 24);
+    graphics.strokeCircle(width / 2 + 6, 40, 24);
+    graphics.fillCircle(width / 2 - 16, 52, 18);
+    graphics.strokeCircle(width / 2 - 16, 52, 18);
     graphics.fillCircle(width / 2 + 18, 52, 18);
     graphics.strokeCircle(width / 2 + 18, 52, 18);
-    graphics.fillCircle(width / 2, 62, 20);
-    graphics.strokeCircle(width / 2, 62, 20);
+    graphics.fillCircle(width / 2 + 2, 62, 20);
+    graphics.strokeCircle(width / 2 + 2, 62, 20);
+    graphics.fillStyle(0x78b96c, 0.2);
+    graphics.fillCircle(width / 2 - 4, 32, 10);
+    graphics.fillCircle(width / 2 - 20, 46, 8);
+    graphics.fillCircle(width / 2 + 16, 46, 8);
     graphics.generateTexture(key, width, height);
     graphics.destroy();
   }
@@ -169,12 +200,14 @@ export class BootScene extends Phaser.Scene {
 
   makeGraveTexture(key, width, height) {
     const graphics = this.make.graphics({ x: 0, y: 0, add: false });
-    graphics.fillStyle(0x141719, 0.2);
-    graphics.fillEllipse(width / 2, height - 6, width * 0.82, 14);
-    graphics.fillStyle(0x71767b, 1);
-    graphics.lineStyle(3, 0x3d4146, 1);
+    graphics.fillStyle(0x121619, 0.22);
+    graphics.fillEllipse(width / 2 + 2, height - 6, width * 0.82, 14);
+    graphics.fillStyle(0x767c82, 1);
+    graphics.lineStyle(3, 0x41474d, 1);
     graphics.fillRoundedRect(8, 14, width - 16, height - 24, 10);
     graphics.strokeRoundedRect(8, 14, width - 16, height - 24, 10);
+    graphics.fillStyle(0xa1a7ac, 0.25);
+    graphics.fillRoundedRect(11, 18, width - 24, 10, 6);
     graphics.fillStyle(0x81878c, 1);
     graphics.fillRect(width * 0.32, height - 16, width * 0.36, 8);
     graphics.lineStyle(2, 0x949a9f, 0.55);
@@ -197,6 +230,13 @@ export class BootScene extends Phaser.Scene {
     graphics.fillTriangle(size * 0.46, size * 0.54, size * 0.62, size * 0.54, size * 0.42, size * 0.84);
     graphics.generateTexture(key, size, size);
     graphics.destroy();
+  }
+
+  shadeColor(color, amount) {
+    const r = Phaser.Math.Clamp(((color >> 16) & 0xff) + amount, 0, 255);
+    const g = Phaser.Math.Clamp(((color >> 8) & 0xff) + amount, 0, 255);
+    const b = Phaser.Math.Clamp((color & 0xff) + amount, 0, 255);
+    return (r << 16) | (g << 8) | b;
   }
 }
 

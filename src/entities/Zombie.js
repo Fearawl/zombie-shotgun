@@ -41,12 +41,12 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
 
     this.shadow = scene.add
       .ellipse(
-        this.x + 6,
-        this.y + (this.isBoss ? 24 : this.isSmall ? 15 : 20),
-        this.isBoss ? 58 : this.isSmall ? 28 : this.isAcid ? 44 : this.isFast ? 46 : 42,
-        this.isBoss ? 22 : this.isSmall ? 12 : 16,
+        this.x + 8,
+        this.y + (this.isBoss ? 26 : this.isSmall ? 16 : 21),
+        this.isBoss ? 66 : this.isSmall ? 32 : this.isAcid ? 50 : this.isFast ? 52 : 48,
+        this.isBoss ? 24 : this.isSmall ? 12 : 17,
         0x000000,
-        0.2
+        0.24
       )
       .setDepth(3);
     this.healthBar = scene.add.graphics().setDepth(6);
@@ -64,7 +64,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     if (!this.canMove) {
       this.setVelocity(0, 0);
       if (this.shadow) {
-        this.shadow.setPosition(this.x + 6, this.y + (this.isBoss ? 24 : this.isSmall ? 14 : 18));
+        this.shadow.setPosition(this.x + 8, this.y + (this.isBoss ? 25 : this.isSmall ? 15 : 19));
       }
       this.drawHealthBar();
       return;
@@ -119,7 +119,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     }
 
     if (this.shadow) {
-      this.shadow.setPosition(this.x + 6, this.y + (this.isBoss ? 24 : this.isSmall ? 14 : 18));
+      this.shadow.setPosition(this.x + 8, this.y + (this.isBoss ? 25 : this.isSmall ? 15 : 19));
     }
     this.drawHealthBar();
   }

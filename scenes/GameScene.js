@@ -178,7 +178,7 @@ export class GameScene extends Phaser.Scene {
     };
     this.player.currentWeapon = WEAPONS.bat.key;
 
-    this.playerShadow = this.add.ellipse(this.player.x + 6, this.player.y + 24, 44, 18, 0x000000, 0.24);
+    this.playerShadow = this.add.ellipse(this.player.x + 8, this.player.y + 25, 52, 20, 0x000000, 0.28).setDepth(3.4);
     this.playerHealthBar = this.add.graphics().setDepth(6);
     this.playerHealthLabel = this.add.text(this.player.x, this.player.y - 46, "", {
       fontFamily: "Verdana, sans-serif",
@@ -457,7 +457,7 @@ export class GameScene extends Phaser.Scene {
 
     const tree = this.add.image(x, y, "tree");
     tree.setScale(scale);
-    tree.setDepth(3);
+    tree.setDepth(2.9 + y / WORLD_HEIGHT * 0.6);
     return tree;
   }
 
@@ -468,7 +468,7 @@ export class GameScene extends Phaser.Scene {
 
     const grave = this.add.image(x, y, "grave");
     grave.setScale(scale);
-    grave.setDepth(2.5);
+    grave.setDepth(2.3 + y / WORLD_HEIGHT * 0.45);
     this.graves.push(grave);
     return grave;
   }
@@ -1293,7 +1293,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   updatePlayerVisuals() {
-    this.playerShadow.setPosition(this.player.x + 8, this.player.y + 22);
+    this.playerShadow.setPosition(this.player.x + 8, this.player.y + 25);
 
     const angle = this.player.facingAngle;
     const originX = this.player.x;
@@ -3016,10 +3016,19 @@ export class GameScene extends Phaser.Scene {
 
   drawArena() {
     const graphics = this.add.graphics();
-    graphics.fillStyle(0x203629, 1);
+    graphics.fillGradientStyle(0x274331, 0x274331, 0x16251b, 0x16251b, 1);
     graphics.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-    graphics.lineStyle(1, 0x2b523a, 0.9);
+    graphics.fillStyle(0x314f3a, 0.22);
+    graphics.fillEllipse(560, 460, 620, 260);
+    graphics.fillEllipse(1480, 1080, 760, 320);
+    graphics.fillEllipse(2360, 920, 700, 280);
+    graphics.fillStyle(0x0c1410, 0.18);
+    graphics.fillEllipse(880, 620, 420, 140);
+    graphics.fillEllipse(1980, 520, 540, 180);
+    graphics.fillEllipse(3220, 1680, 620, 210);
+
+    graphics.lineStyle(1, 0x2e543d, 0.55);
     for (let y = 0; y < WORLD_HEIGHT; y += 72) {
       graphics.lineBetween(0, y, WORLD_WIDTH, y);
     }
@@ -3027,18 +3036,29 @@ export class GameScene extends Phaser.Scene {
       graphics.lineBetween(x, 0, x, WORLD_HEIGHT);
     }
 
-    graphics.lineStyle(2, 0x3a6b4d, 0.4);
+    graphics.lineStyle(2, 0x507558, 0.24);
+    for (let y = -120; y < WORLD_HEIGHT + 120; y += 160) {
+      graphics.lineBetween(0, y, WORLD_WIDTH, y + 220);
+    }
+
+    graphics.lineStyle(2, 0x3f694d, 0.28);
     for (let x = -500; x < WORLD_WIDTH + 120; x += 140) {
       graphics.lineBetween(x, 0, x + 560, WORLD_HEIGHT);
     }
 
-    graphics.fillStyle(0x43633b, 0.9);
+    graphics.fillStyle(0x47693f, 0.82);
     graphics.fillEllipse(560, 460, 520, 200);
     graphics.fillEllipse(1480, 1080, 620, 220);
     graphics.fillEllipse(1780, 420, 420, 170);
     graphics.fillEllipse(2360, 920, 560, 220);
     graphics.fillEllipse(2820, 1540, 620, 240);
     graphics.fillEllipse(1080, 1820, 720, 250);
+    graphics.fillStyle(0x83aa75, 0.08);
+    graphics.fillEllipse(480, 410, 260, 84);
+    graphics.fillEllipse(1430, 1030, 300, 90);
+    graphics.fillEllipse(1740, 390, 180, 56);
+    graphics.fillEllipse(2320, 870, 250, 80);
+    graphics.fillEllipse(2760, 1490, 290, 88);
   }
 
   updateZombieSpawnInterval(delayMs) {
